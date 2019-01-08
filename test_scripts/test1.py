@@ -1,10 +1,11 @@
 storagePath = '/tmp/background_processing/test1.blend'  # DO NOT DELETE THIS LINE
-blendfile = '/Users/cgear13/Desktop/background_processing_tester.blend'  # DO NOT DELETE THIS LINE
+blendfile = '/Users/cgear13/Desktop/deleteme.blend'  # DO NOT DELETE THIS LINE
 
 ### WRITE YOUR PYTHON IMPORTS HERE ###
 
 import bpy
 import bmesh
+import time
 
 ### DO NOT EDIT THESE LINES ###
 
@@ -34,7 +35,7 @@ obj = bpy.data.objects.get("Cube")
 rMod = obj.modifiers.new(obj.name + '_remesh', 'REMESH')
 m = obj.to_mesh(bpy.context.scene, True, 'PREVIEW')
 m.name = "Cube_remesh"
-
+time.sleep(2)
 
 # bm = bmesh.new()
 # bm.from_mesh(m)

@@ -28,3 +28,29 @@ def appendFrom(directory, filename):
         filepath=filepath,
         filename=filename,
         directory=directory)
+
+
+def bashSafeName(string):
+    # protects against file names that would cause problems with bash calls
+    if string.startswith(".") or string.startswith("-"):
+        string = "_" + string[1:]
+    # replaces problematic characters in shell with underscore '_'
+    chars = "!#$&'()*,;<=>?[]^`{|}~: "
+    for char in list(chars):
+        string = string.replace(char, "_")
+    return string
+
+def setup_job(job, blendfile):
+    # insert final blend file name to top of files
+    blendFileName = job.split("/")[-1].split(".")[0] + ".blend"
+    fullPath = os.path.join(self.path, blendFileName)
+    # add new storage path to lines in job file in READ mode
+    src=open(job,"r")
+    oline=src.readlines()
+    oline[0] = "storagePath = '%(fullPath)s'  # DO NOT DELETE THIS LINE\n" % locals()
+    oline[1] = "blendfile = '%(blendfile)s'  # DO NOT DELETE THIS LINE\n" % locals()
+    src.close()
+    # write text to job file in WRITE mode
+    src=open(job,"w")
+    src.writelines(oline)
+    src.close()
