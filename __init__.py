@@ -28,11 +28,31 @@ bl_info = {
     "category"    : "Object"}
 
 import bpy
-from .classes.JobManager import *
+from bpy.types import Scene
+
+from .classes import *
 from .ui import *
 
 def register():
     bpy.utils.register_module(__name__)
+    Scene.backproc_max_workers = IntProperty(
+        name="Maximum Workers",
+        description="Maximum number of Blender instances to run in the background",
+        min=0, max=100,
+        default=2)
+    Scene.backproc_available_workers = IntProperty(default=0)
+    Scene.backproc_pending_jobs = IntProperty(default=0)
+    Scene.backproc_running_jobs = IntProperty(default=0)
+    Scene.backproc_completed_jobs = IntProperty(default=0)
+    Scene.backproc_dropped_jobs = IntProperty(default=0)
+    Scene.backproc_job_manager_running = BoolProperty(default=False)
 
 def unregister():
+    del Scene.backproc_job_manager_running
+    del Scene.backproc_dropped_jobs
+    del Scene.backproc_completed_jobs
+    del Scene.backproc_running_jobs
+    del Scene.backproc_pending_jobs
+    del Scene.backproc_available_workers
+    del Scene.backproc_max_workers
     bpy.utils.unregister_module(__name__)

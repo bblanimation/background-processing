@@ -43,4 +43,30 @@ class BACKGROUND_PT_interface(Panel):
         layout = self.layout
         scn = context.scene
 
-        layout.operator("scene.job_manager")
+        col = layout.column(align=True)
+        row = col.row(align=True)
+        row.operator("scene.job_manager")
+        col = layout.column(align=True)
+        row = col.row(align=True)
+        row.operator("scene.add_job", text="Add Job 1").job_index = 0
+        row = col.row(align=True)
+        row.operator("scene.add_job", text="Add Job 2").job_index = 1
+        row = col.row(align=True)
+        row.operator("scene.add_job", text="Add Job 3").job_index = 2
+        row = col.row(align=True)
+        row.operator("scene.add_job", text="Add Job 4").job_index = 3
+        col = layout.column(align=True)
+        row = col.row(align=True)
+        row.prop(scn, "backproc_max_workers")
+        col = layout.column(align=True)
+        col.scale_y = 0.7
+        row = col.row(align=True)
+        row.label(text="Pending Jobs: " + str(scn.backproc_pending_jobs))
+        row = col.row(align=True)
+        row.label(text="Running Jobs: " + str(scn.backproc_running_jobs))
+        row = col.row(align=True)
+        row.label(text="Completed Jobs: " + str(scn.backproc_completed_jobs))
+        row = col.row(align=True)
+        row.label(text="Dropped Jobs: " + str(scn.backproc_dropped_jobs))
+        row = col.row(align=True)
+        row.label(text="Available Workers: " + str(scn.backproc_available_workers if scn.backproc_job_manager_running else scn.backproc_max_workers))

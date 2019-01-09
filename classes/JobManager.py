@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 # Copyright (C) 2018 Christopher Gearhart
 # chris@bblanimation.com
 # http://bblanimation.com/
@@ -30,28 +28,28 @@ from bpy.props import *
 # Addon imports
 from ..functions import *
 
-jobs = [
-    '/Users/cgear13/scripts/patrick_moore/background_processing/test_scripts/test1.py',
-    # '/Users/cgear13/scripts/patrick_moore/background_processing/test_scripts/test2.py',
-    # '/Users/cgear13/scripts/patrick_moore/background_processing/test_scripts/test3.py',
-    # '/Users/cgear13/scripts/patrick_moore/background_processing/test_scripts/test4.py',
-    ]
-
 class SCENE_OT_job_manager(Operator):
-    """ Manages and distributes jobs for all available hosts """
+    """ Manages and distributes jobs for all available workers """
     bl_idname = "scene.job_manager"
-    bl_label = "Background Processor"
-    bl_description = "Popup menu to check and display current updates available"
+    bl_label = "Job Manager"
+    bl_description = "Manages and distributes jobs for all available workers"
     bl_options = {'REGISTER'}
 
     ################################################
     # Blender Operator methods
 
+    @classmethod
+    def poll(self, context):
+        """ ensures operator can execute (if not, returns False) """
+        scn = bpy.context.scene
+        return not scn.backproc_job_manager_running
+
     def execute(self, context):
         if self.projectName == "":
             self.report({"WARNING"}, "Please save your Blender file before running a background process")
             return {"CANCELLED"}
-        self.process_jobs()
+        self.report({"INFO"}, "Running Job Manager")
+        SCENE_OT_job_manager.instance = self
         # create timer for modal
         wm = context.window_manager
         self._timer = wm.event_timer_add(0.5, context.window)
@@ -59,19 +57,15 @@ class SCENE_OT_job_manager(Operator):
         return{"RUNNING_MODAL"}
 
     def modal(self, context, event):
-        if event.type == "ESC":
+        if self.stop_now:
+            return {"CANCELLED"}
+        elif event.type == "ESC":
             self.kill_all()
             self.report({"INFO"}, "Background Process cancelled")
             return {"FINISHED"}
-        elif self.jobs_complete() or self.stop_now:
-            self.retrieve_data()
-            return {"FINISHED"}
-        elif time.time() - self.start_time > self.time_limit:
-            self.kill_all()
-            self.report({"INFO"}, "Background Process timed out")
-            return {"FINISHED"}
         elif event.type == "TIMER":
             self.process_jobs()
+            self.update_exposed_values()
         return {"PASS_THROUGH"}
 
     def cancel(self, context):
@@ -81,14 +75,17 @@ class SCENE_OT_job_manager(Operator):
     # initialization method
 
     def __init__(self):
+        scn = bpy.context.scene
         # initialize vars
         self.start_time = time.time()
         self.path = "/tmp/background_processing/"
-        self.jobs = jobs
+        self.jobs = list()
         self.job_processes = dict()
+        self.job_statuses = dict()
         self.stop_now = False
-        self.blendfile = bpy.data.filepath
+        self.sourceBlendFile = bpy.data.filepath
         self.projectName = bashSafeName(bpy.path.display_name_from_filepath(bpy.data.filepath))
+        scn.backproc_job_manager_running = True
         # create temp background_processing path if necessary
         if not os.path.exists(self.path):
             os.makedirs(self.path)
@@ -96,53 +93,77 @@ class SCENE_OT_job_manager(Operator):
     ###################################################
     # class variables
 
-    time_limit = FloatProperty(default=10)
+    instance = None
+    time_limit = FloatProperty(default=7)
+    max_attempts = IntProperty(default=2)
 
     #############################################
     # class methods
 
+    @staticmethod
+    def get_instance():
+        if SCENE_OT_job_manager.instance is None:
+            SCENE_OT_job_manager.instance = SCENE_OT_job_manager()
+        return SCENE_OT_job_manager.instance
+
     def start_job(self, job):
-        setup_job(job, self.blendfile)
+        setup_job(job, self.path, self.sourceBlendFile)
         # send job string to background blender instance with subprocess
-        thread_func = "/Applications/Blender/blender.app/Contents/MacOS/blender -b -P %(job)s" % locals()
-        self.job_processes[job] = subprocess.Popen(thread_func, shell=True)#, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        print("JOB STARTED:", job.split("/")[-1].split(".")[0])
+        attempts = 1 if job not in self.job_statuses.keys() else (self.job_statuses[job]["attempts"] + 1)
+        # TODO: Choose a better exit code than 155
+        thread_func = "/Applications/Blender/blender.app/Contents/MacOS/blender -b --python-exit-code 155 --factory-startup -P %(job)s" % locals()
+        self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE, shell=True)  # stderr=subprocess.PIPE,
+        self.job_statuses[job] = {"returncode":None, "lines":None, "start_time":time.time(), "attempts":attempts}
+        print("JOB STARTED:  ", self.get_job_name(job))
 
     def add_job(self, job):
+        if job in self.jobs:
+            return False
         self.jobs.append(job)
+        return True
 
     def process_jobs(self):
         try:
             for job in self.jobs:
                 if self.jobs_complete() or self.stop_now:
                     break
-                if not job_started(job):
-                    self.start_job(self, job)
+                if not self.job_started(job) or (self.job_statuses[job]["returncode"] is not None and self.job_statuses[job]["returncode"] != 0 and self.job_statuses[job]["attempts"] < self.max_attempts):
+                    if len(self.job_processes) < bpy.context.scene.backproc_max_workers:
+                        self.start_job(job)
                     continue
+                job_status = self.job_statuses[job]
+                if job_status["returncode"] is not None:
+                    continue
+                elif time.time() - job_status["start_time"] > self.time_limit:
+                    self.kill_job(job)
                 job_process = self.job_processes[job]
-                if type(job_process) == dict:
-                    continue
                 job_process.poll()
-                if job_process.returncode == None:
+                if job_process.returncode is None:
                     continue
-                elif job_process.returncode != 0:
-                    print("JOB CANCELLED: ", job.split("/")[-1].split(".")[0], " (returncode:" + str(job_process.returncode) + ")")
-                    # for rl in job_process.stderr.readlines():
-                    #     print(rl.decode("ASCII"), end="")
-                    self.job_processes[job] = dict()
                 else:
-                    print("JOB ENDED:  ", job.split("/")[-1].split(".")[0], " (returncode:" + str(job_process.returncode) + ")")
-                    # for rl in job_process.stdout.readlines():
-                    #     print(rl.decode("ASCII"), end="")
-                    self.job_processes[job] = dict()
+                    self.job_processes.pop(job)
+                    job_status["returncode"] = job_process.returncode
+                    msgObject = job_process.stdout if job_process.returncode == 0 else job_process.stderr
+                    lines = tuple() if msgObject is None else msgObject.readlines()
+                    job_status["lines"] = [line.decode("ASCII") for line in lines]
+                    print("JOB CANCELLED:" if job_process.returncode != 0 else "JOB ENDED:    ", self.get_job_name(job), " (returncode:" + str(job_process.returncode) + ")")
+                    if job_process.returncode == 0:
+                        self.retrieve_data(job)
         except (KeyboardInterrupt, SystemExit):
             self.kill_all()
 
+    @staticmethod
+    def get_job_name(job):
+        return job.split("/")[-1].split(".")[0]
+
     def job_started(self, job):
-        return job in self.job_processes.keys()
+        return job in self.job_statuses.keys()
 
     def job_complete(self, job):
-        return job in self.job_processes and type(self.job_processes[job]) == dict
+        return job in self.job_statuses and self.job_statuses[job]["returncode"] == 0
+
+    def job_dropped(self, job):
+        return job in self.job_statuses and self.job_statuses[job]["attempts"] == self.max_attempts and self.job_statuses[job]["returncode"] is not None
 
     def jobs_complete(self):
         for job in self.jobs:
@@ -151,28 +172,56 @@ class SCENE_OT_job_manager(Operator):
         return True
 
     def kill_all(self):
-        self.stop_now = True
-        for job_key in self.job_processes.keys():
-            job_process = self.job_processes[job_key]
-            if type(job_process) != dict:
-                job_process.kill()
+        for job in self.job_processes.keys():
+            self.kill_job(job)
+        self.stop()
+        self.reset_exposed_values()
+
+    def kill_job(self, job):
+        self.job_processes[job].kill()
 
     def stop(self):
+        scn = bpy.context.scene
         self.stop_now = True
+        scn.backproc_job_manager_running = False
 
-    def retrieve_data(self):
-        for job in self.jobs:
-            blendFileName = job.split("/")[-1].split(".")[0] + ".blend"
-            fullBlendPath = os.path.join(self.path, blendFileName)
-            with bpy.data.libraries.load(fullBlendPath) as (data_from, data_to):
-                for attr in dir(data_to):
-                    setattr(data_to, attr, getattr(data_from, attr))
-        self.report({"INFO"}, "Background process completed... Data retrieved!")
+    def retrieve_data(self, job):
+        sourceBlendFileName = self.get_job_name(job) + ".blend"
+        fullBlendPath = os.path.join(self.path, sourceBlendFileName)
+        with bpy.data.libraries.load(fullBlendPath) as (data_from, data_to):
+            for attr in dir(data_to):
+                setattr(data_to, attr, getattr(data_from, attr))
+        self.report({"INFO"}, "Background process completed for job '" + self.get_job_name(job) + "'... Data retrieved!")
+
+    def reset_exposed_values(self):
+        scn = bpy.context.scene
+        scn.backproc_available_workers = bpy.context.scene.backproc_max_workers
+        scn.backproc_pending_jobs = 0
+        scn.backproc_running_jobs = 0
+        tag_redraw_areas("VIEW_3D")
+
+    def update_exposed_values(self):
+        scn = bpy.context.scene
+        scn.backproc_available_workers = self.num_available_workers()
+        scn.backproc_pending_jobs = self.num_pending_jobs()
+        scn.backproc_running_jobs = self.num_running_jobs()
+        scn.backproc_completed_jobs = self.num_completed_jobs()
+        scn.backproc_dropped_jobs = self.num_dropped_jobs()
+        tag_redraw_areas("VIEW_3D")
+
+    def num_available_workers(self):
+        return bpy.context.scene.backproc_max_workers - len(self.job_processes)
+
+    def num_pending_jobs(self):
+        return len(self.jobs) - len(self.job_statuses)
+
+    def num_running_jobs(self):
+        return len(self.job_processes)
+
+    def num_completed_jobs(self):
+        return [self.job_complete(job) for job in self.jobs].count(True)
+
+    def num_dropped_jobs(self):
+        return [self.job_dropped(job) for job in self.jobs].count(True)
 
     ###################################################
-
-# def register():
-#     bpy.utils.register_module(__name__)
-#
-# def unregister():
-#     bpy.utils.unregister_module(__name__)

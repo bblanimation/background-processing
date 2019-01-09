@@ -40,15 +40,15 @@ def bashSafeName(string):
         string = string.replace(char, "_")
     return string
 
-def setup_job(job, blendfile):
+def setup_job(job, path, sourceBlendFile):
     # insert final blend file name to top of files
-    blendFileName = job.split("/")[-1].split(".")[0] + ".blend"
-    fullPath = os.path.join(self.path, blendFileName)
+    sourceBlendFileName = job.split("/")[-1].split(".")[0] + ".blend"
+    fullPath = os.path.join(path, sourceBlendFileName)
     # add new storage path to lines in job file in READ mode
     src=open(job,"r")
     oline=src.readlines()
     oline[0] = "storagePath = '%(fullPath)s'  # DO NOT DELETE THIS LINE\n" % locals()
-    oline[1] = "blendfile = '%(blendfile)s'  # DO NOT DELETE THIS LINE\n" % locals()
+    oline[1] = "sourceBlendFile = '%(sourceBlendFile)s'  # DO NOT DELETE THIS LINE\n" % locals()
     src.close()
     # write text to job file in WRITE mode
     src=open(job,"w")

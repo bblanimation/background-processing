@@ -145,7 +145,7 @@ def remove_item(ls, item):
 
 
 def tag_redraw_areas(areaTypes=["ALL"]):
-    areaTypes = confirmIter(areaTypes)
+    areaTypes = confirmList(areaTypes)
     for area in bpy.context.screen.areas:
         for areaType in areaTypes:
             if areaType == "ALL" or area.type == areaType:
