@@ -74,6 +74,7 @@ class SCENE_OT_add_job(Operator):
 
     def __init__(self):
         self.JobManager = SCENE_OT_job_manager.get_instance()
+        self.JobManager.timeout = 7
 
     ###################################################
     # class variables

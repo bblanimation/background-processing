@@ -94,7 +94,7 @@ class SCENE_OT_job_manager(Operator):
     # class variables
 
     instance = None
-    time_limit = FloatProperty(default=7)
+    timeout = FloatProperty(default=0)
     max_workers = IntProperty(default=2)
     max_attempts = IntProperty(default=2)
 
@@ -135,7 +135,7 @@ class SCENE_OT_job_manager(Operator):
                 job_status = self.job_statuses[job]
                 if job_status["returncode"] is not None:
                     continue
-                elif time.time() - job_status["start_time"] > self.time_limit:
+                elif self.timeout > 0 and time.time() - job_status["start_time"] > self.timeout:
                     self.kill_job(job)
                 job_process = self.job_processes[job]
                 job_process.poll()
