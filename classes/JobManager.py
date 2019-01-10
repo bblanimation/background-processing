@@ -31,7 +31,7 @@ from ..functions import *
 class SCENE_OT_job_manager(Operator):
     """ Manages and distributes jobs for all available workers """
     bl_idname = "scene.job_manager"
-    bl_label = "Job Manager"
+    bl_label = "Start the Job Manager"
     bl_description = "Manages and distributes jobs for all available workers"
     bl_options = {'REGISTER'}
 
@@ -95,6 +95,7 @@ class SCENE_OT_job_manager(Operator):
 
     instance = None
     time_limit = FloatProperty(default=7)
+    max_workers = IntProperty(default=2)
     max_attempts = IntProperty(default=2)
 
     #############################################
@@ -128,7 +129,7 @@ class SCENE_OT_job_manager(Operator):
                 if self.jobs_complete() or self.stop_now:
                     break
                 if not self.job_started(job) or (self.job_statuses[job]["returncode"] is not None and self.job_statuses[job]["returncode"] != 0 and self.job_statuses[job]["attempts"] < self.max_attempts):
-                    if len(self.job_processes) < bpy.context.scene.backproc_max_workers:
+                    if len(self.job_processes) < self.max_workers:
                         self.start_job(job)
                     continue
                 job_status = self.job_statuses[job]
@@ -191,11 +192,11 @@ class SCENE_OT_job_manager(Operator):
         with bpy.data.libraries.load(fullBlendPath) as (data_from, data_to):
             for attr in dir(data_to):
                 setattr(data_to, attr, getattr(data_from, attr))
-        self.report({"INFO"}, "Background process completed for job '" + self.get_job_name(job) + "'... Data retrieved!")
+        self.report({"INFO"}, "Background process '" + self.get_job_name(job) + "' completed... Data retrieved!")
 
     def reset_exposed_values(self):
         scn = bpy.context.scene
-        scn.backproc_available_workers = bpy.context.scene.backproc_max_workers
+        scn.backproc_available_workers = self.max_workers
         scn.backproc_pending_jobs = 0
         scn.backproc_running_jobs = 0
         tag_redraw_areas("VIEW_3D")
@@ -210,7 +211,7 @@ class SCENE_OT_job_manager(Operator):
         tag_redraw_areas("VIEW_3D")
 
     def num_available_workers(self):
-        return bpy.context.scene.backproc_max_workers - len(self.job_processes)
+        return self.max_workers - len(self.job_processes)
 
     def num_pending_jobs(self):
         return len(self.jobs) - len(self.job_statuses)

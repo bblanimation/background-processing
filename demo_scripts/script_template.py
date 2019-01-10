@@ -1,5 +1,5 @@
-storagePath = '/tmp/background_processing/test1.blend'  # DO NOT DELETE THIS LINE
-sourceBlendFile = '/Users/cgear13/Desktop/deleteme.blend'  # DO NOT DELETE THIS LINE
+storagePath = ''  # DO NOT DELETE THIS LINE
+sourceBlendFile = ''  # DO NOT DELETE THIS LINE
 
 ### DO NOT EDIT THESE LINES ###
 
@@ -21,30 +21,21 @@ def appendFrom(directory, filename):
 ### WRITE YOUR PYTHON CODE HERE ###
 
 import bmesh
-import time
 
 # Pull objects and meshes from source file like this:
 # appendFrom(objDirectory, "Cube")
 # appendFrom(meshDirectory, "Cube")
 
-appendFrom(objDirectory, "Cube")
-obj = bpy.data.objects.get("Cube")
-rMod = obj.modifiers.new(obj.name + '_remesh', 'REMESH')
-m = obj.to_mesh(bpy.context.scene, True, 'PREVIEW')
-m.name = "Cube_remesh"
-time.sleep(4)
+obj = bpy.data.meshes.new("square_mesh_demo", m)
+bm = bmesh.new()
+v1 = bm.verts.new(( 2,  2, 0))
+v2 = bm.verts.new((-2,  2, 0))
+v3 = bm.verts.new((-2, -2, 0))
+v4 = bm.verts.new(( 2, -2, 0))
+f1 = bm.faces.new((v1, v2, v3, v4))
+bm.to_mesh(m)
 
-# bm = bmesh.new()
-# bm.from_mesh(m)
-# v1 = bm.verts.new(( 2,  2, 0))
-# v2 = bm.verts.new((-2,  2, 0))
-# v3 = bm.verts.new((-2, -2, 0))
-# v4 = bm.verts.new(( 2, -2, 0))
-# f1 = bm.faces.new((v1, v2, v3, v4))
-# bm.to_mesh(m)
-# obj = bpy.data.objects.new("test_object", m)
-
-### SET 'data_blocks' EQUAL TO LIST OF OBJECT DATA YOU WISH TO STORE ###
+### SET 'data_blocks' EQUAL TO LIST OF OBJECT DATA TO BE SEND BACK TO THE BLENDER HOST ###
 
 data_blocks = [m]
 

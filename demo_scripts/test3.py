@@ -1,4 +1,4 @@
-storagePath = '/tmp/background_processing/test4.blend'  # DO NOT DELETE THIS LINE
+storagePath = '/tmp/background_processing/test3.blend'  # DO NOT DELETE THIS LINE
 sourceBlendFile = '/Users/cgear13/Desktop/deleteme.blend'  # DO NOT DELETE THIS LINE
 
 ### DO NOT EDIT THESE LINES ###
@@ -38,9 +38,9 @@ v4 = bm.verts.new(( 2, -2, 0))
 f1 = bm.faces.new((v1, v2, v3, v4))
 bm.to_mesh(m)
 obj = bpy.data.objects.new("test_object", m)
-time.sleep(3)
+time.sleep(6)
 
-### SET 'data_blocks' EQUAL TO LIST OF OBJECT DATA YOU WISH TO STORE ###
+### SET 'data_blocks' EQUAL TO LIST OF OBJECT DATA TO BE SEND BACK TO THE BLENDER HOST ###
 
 data_blocks = [m]
 

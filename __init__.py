@@ -35,10 +35,15 @@ from .ui import *
 
 def register():
     bpy.utils.register_module(__name__)
+    def updateMaxWorkers(self, context):
+        if context.scene.backproc_job_manager_running:
+            JobManager = SCENE_OT_job_manager.get_instance()
+            JobManager.max_workers = context.scene.backproc_max_workers
     Scene.backproc_max_workers = IntProperty(
         name="Maximum Workers",
         description="Maximum number of Blender instances to run in the background",
         min=0, max=100,
+        update=updateMaxWorkers,
         default=2)
     Scene.backproc_available_workers = IntProperty(default=0)
     Scene.backproc_pending_jobs = IntProperty(default=0)

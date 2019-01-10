@@ -26,10 +26,10 @@ from bpy.types import Operator
 from .JobManager import *
 
 jobs = [
-    '/Users/cgear13/scripts/patrick_moore/background_processing/test_scripts/test1.py',
-    '/Users/cgear13/scripts/patrick_moore/background_processing/test_scripts/test2.py',
-    '/Users/cgear13/scripts/patrick_moore/background_processing/test_scripts/test3.py',
-    '/Users/cgear13/scripts/patrick_moore/background_processing/test_scripts/test4.py',
+    '/Users/cgear13/scripts/patrick_moore/background_processing/demo_scripts/test1.py',
+    '/Users/cgear13/scripts/patrick_moore/background_processing/demo_scripts/test2.py',
+    '/Users/cgear13/scripts/patrick_moore/background_processing/demo_scripts/test3.py',
+    '/Users/cgear13/scripts/patrick_moore/background_processing/demo_scripts/test4.py',
     ]
 
 class SCENE_OT_add_job(Operator):
@@ -59,9 +59,14 @@ class SCENE_OT_add_job(Operator):
         return{"RUNNING_MODAL"}
 
     def modal(self, context, event):
-        if self.JobManager.job_complete(jobs[0]):
-            self.report({"INFO"}, "Added job was finished")
+        job = jobs[self.job_index]
+        job_name = self.JobManager.get_job_name(job)
+        if self.JobManager.job_complete(job):
+            self.report({"INFO"}, "Background process '" + job_name + "' was finished")
             return {"FINISHED"}
+        if self.JobManager.job_dropped(job):
+            self.report({"WARNING"}, "Background process '" + job_name + "' was dropped")
+            return {"CANCELLED"}
         return {"PASS_THROUGH"}
 
     ################################################

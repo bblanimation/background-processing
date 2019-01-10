@@ -40,7 +40,7 @@ bm.to_mesh(m)
 obj = bpy.data.objects.new("test_object", m)
 time.sleep(8)
 
-### SET 'data_blocks' EQUAL TO LIST OF OBJECT DATA YOU WISH TO STORE ###
+### SET 'data_blocks' EQUAL TO LIST OF OBJECT DATA TO BE SEND BACK TO THE BLENDER HOST ###
 
 data_blocks = [m]
 
