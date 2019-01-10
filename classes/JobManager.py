@@ -50,6 +50,7 @@ class SCENE_OT_job_manager(Operator):
             return {"CANCELLED"}
         self.report({"INFO"}, "Running Job Manager")
         SCENE_OT_job_manager.instance = self
+        context.scene.backproc_job_manager_running = True
         # create timer for modal
         wm = context.window_manager
         self._timer = wm.event_timer_add(0.5, context.window)
@@ -85,7 +86,6 @@ class SCENE_OT_job_manager(Operator):
         self.stop_now = False
         self.sourceBlendFile = bpy.data.filepath
         self.projectName = bashSafeName(bpy.path.display_name_from_filepath(bpy.data.filepath))
-        scn.backproc_job_manager_running = True
         # create temp background_processing path if necessary
         if not os.path.exists(self.path):
             os.makedirs(self.path)
@@ -104,7 +104,7 @@ class SCENE_OT_job_manager(Operator):
     @staticmethod
     def get_instance():
         if SCENE_OT_job_manager.instance is None:
-            SCENE_OT_job_manager.instance = SCENE_OT_job_manager()
+            SCENE_OT_job_manager.instance = SCENE_OT_job_manager(Operator)
         return SCENE_OT_job_manager.instance
 
     def start_job(self, job):
