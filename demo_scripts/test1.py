@@ -1,16 +1,20 @@
-storagePath = '/tmp/background_processing/test1.blend'  # DO NOT DELETE THIS LINE
-sourceBlendFile = '/Users/cgear13/Desktop/deleteme.blend'  # DO NOT DELETE THIS LINE
+objName = 'Aged 30'  # DO NOT DELETE THIS LINE
+sourceBlendFile = '/Users/cgear13/Dropbox (Lakeview Productions)/Gearhart Moore Share/Blend Files/Projects/IndefPhys/all_teeth.blend'  # DO NOT DELETE THIS LINE
+storagePath = '/tmp/background_processing/test1_data.blend'  # DO NOT DELETE THIS LINE
+#** DO NOT DELETE THIS LINE OR EDIT THE LINES ABOVE **#
 
 ### DO NOT EDIT THESE LINES ###
 
 import bpy
-for obj in bpy.data.objects:
-    obj.name = "background_removed"
-for mesh in bpy.data.meshes:
-    mesh.name = "background_removed"
+import os
+if bpy.data.filepath == "":
+    for obj in bpy.data.objects:
+        obj.name = "background_removed"
+    for mesh in bpy.data.meshes:
+        mesh.name = "background_removed"
+data_blocks = []
 objDirectory = "%(sourceBlendFile)s/Object/" % locals()
 meshDirectory = "%(sourceBlendFile)s/Mesh/" % locals()
-data_blocks = []
 def appendFrom(directory, filename):
     filepath = directory + filename
     bpy.ops.wm.append(
@@ -23,26 +27,12 @@ def appendFrom(directory, filename):
 import bmesh
 import time
 
-# Pull objects and meshes from source file like this:
-# appendFrom(objDirectory, "Cube")
-# appendFrom(meshDirectory, "Cube")
-
-appendFrom(objDirectory, "Cube")
-obj = bpy.data.objects.get("Cube")
+appendFrom(objDirectory, objName)
+obj = bpy.data.objects.get(objName)
 rMod = obj.modifiers.new(obj.name + '_remesh', 'REMESH')
 m = obj.to_mesh(bpy.context.scene, True, 'PREVIEW')
-m.name = "Cube_remesh"
+m.name = objName + "_remesh"
 time.sleep(4)
-
-# bm = bmesh.new()
-# bm.from_mesh(m)
-# v1 = bm.verts.new(( 2,  2, 0))
-# v2 = bm.verts.new((-2,  2, 0))
-# v3 = bm.verts.new((-2, -2, 0))
-# v4 = bm.verts.new(( 2, -2, 0))
-# f1 = bm.faces.new((v1, v2, v3, v4))
-# bm.to_mesh(m)
-# obj = bpy.data.objects.new("test_object", m)
 
 ### SET 'data_blocks' EQUAL TO LIST OF OBJECT DATA TO BE SEND BACK TO THE BLENDER HOST ###
 
@@ -50,4 +40,7 @@ data_blocks = [m]
 
 ### DO NOT EDIT BEYOND THIS LINE ###
 
+assert None not in data_blocks  # ensures that all data from data_blocks exists
+if os.path.exists(storagePath):
+    os.remove(storagePath)
 bpy.data.libraries.write(storagePath, set(data_blocks), fake_user=True)

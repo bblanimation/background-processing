@@ -44,11 +44,14 @@ class SCENE_OT_add_job(Operator):
 
     @classmethod
     def poll(self, context):
-        """ ensures operator can execute (if not, returns False) """
-        return bpy.context.scene.backproc_job_manager_running
+        """ ensures operator can execute (if not, returns false) """
+        return bpy.context.object is not None
 
     def execute(self, context):
-        jobAdded = self.JobManager.add_job(jobs[self.job_index])
+        # NOTE: save blend file first if 'use_blend_file' parameter in 'add_job' is set to True.
+        bpy.ops.wm.save_as_mainfile(filepath=bpy.data.filepath)
+        # NOTE: Set 'use_blend_file' to True to access data from the current blend file in script (False to execute script from default startup)
+        jobAdded = self.JobManager.add_job(jobs[self.job_index], use_blend_file=True, passed_data={"objName":self.targetObjName})
         if not jobAdded:
             self.report({"WARNING"}, "Job already added")
             return {"CANCELLED"}
@@ -59,22 +62,29 @@ class SCENE_OT_add_job(Operator):
         return{"RUNNING_MODAL"}
 
     def modal(self, context, event):
-        job = jobs[self.job_index]
-        job_name = self.JobManager.get_job_name(job)
-        if self.JobManager.job_complete(job):
-            self.report({"INFO"}, "Background process '" + job_name + "' was finished")
-            return {"FINISHED"}
-        if self.JobManager.job_dropped(job):
-            self.report({"WARNING"}, "Background process '" + job_name + "' was dropped")
-            return {"CANCELLED"}
+        if event.type == "TIMER":
+            self.JobManager.process_job(self.job)
+            job_name = self.JobManager.get_job_name(self.job)
+            if self.JobManager.job_complete(self.job):
+                self.report({"INFO"}, "Background process '%(job_name)s' was finished" % locals())
+                return {"FINISHED"}
+            if self.JobManager.job_dropped(self.job):
+                self.report({"WARNING"}, "Background process '%(job_name)s' was finished" % locals())
+                return {"CANCELLED"}
         return {"PASS_THROUGH"}
+
+    def cancel(self, context):
+        self.JobManager.kill_job(self.job)
 
     ################################################
     # initialization method
 
     def __init__(self):
+        self.job = jobs[self.job_index]
         self.JobManager = SCENE_OT_job_manager.get_instance()
+        self.JobManager.max_workers = 5
         self.JobManager.timeout = 7
+        self.targetObjName = bpy.context.object.name
 
     ###################################################
     # class variables
