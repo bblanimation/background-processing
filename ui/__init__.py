@@ -25,7 +25,6 @@ from bpy.types import Operator, Panel
 
 # Addon imports
 from ..classes.JobManager import *
-from ..functions import *
 
 
 class BACKGROUND_PT_interface(Panel):

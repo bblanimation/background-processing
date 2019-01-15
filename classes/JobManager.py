@@ -25,9 +25,6 @@ import bpy
 from bpy.types import Operator
 from bpy.props import *
 
-# Addon imports
-from ..functions import *
-
 class SCENE_OT_job_manager():
     """ Manages and distributes jobs for all available workers """
 
@@ -53,7 +50,7 @@ class SCENE_OT_job_manager():
     ###################################################
     # class variables
 
-    instance = None
+    instance = dict()
     timeout = 0
     max_workers = 5
     max_attempts = 2
@@ -62,10 +59,10 @@ class SCENE_OT_job_manager():
     # class methods
 
     @staticmethod
-    def get_instance():
-        if SCENE_OT_job_manager.instance is None:
-            SCENE_OT_job_manager.instance = SCENE_OT_job_manager()
-        return SCENE_OT_job_manager.instance
+    def get_instance(index=0):
+        if index not in SCENE_OT_job_manager.instance:
+            SCENE_OT_job_manager.instance[index] = SCENE_OT_job_manager()
+        return SCENE_OT_job_manager.instance[index]
 
     def setup_job(self, job:str):
         # insert final blend file name to top of files
@@ -89,15 +86,19 @@ class SCENE_OT_job_manager():
         src.writelines(oline)
         src.close()
 
-    def start_job(self, job:str):
+    def start_job(self, job:str, debug:bool=False):
         # send job string to background blender instance with subprocess
         attempts = 1 if job not in self.job_statuses.keys() else (self.job_statuses[job]["attempts"] + 1)
         # TODO: Choose a better exit code than 155
         binary_path = bpy.app.binary_path
-        blendfile_path = self.blendfile_path if self.uses_blend_file[job] else ""
-        thread_func = "%(binary_path)s %(blendfile_path)s -b --python-exit-code 155 -P %(job)s" % locals()
-        self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE, shell=True)  # stderr=subprocess.PIPE,
-        self.job_statuses[job] = {"returncode":None, "lines":None, "start_time":time.time(), "attempts":attempts}
+        blendfile_path = self.blendfile_path.replace(" ", "\\ ") if self.uses_blend_file[job] else ""
+        bash_safe_job = job.replace(" ", "\\ ")
+        thread_func = "%(binary_path)s %(blendfile_path)s -b --python-exit-code 155 -P %(bash_safe_job)s" % locals()
+        if debug:
+            self.job_processes[job] = subprocess.Popen(thread_func, shell=True)
+        else:
+            self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        self.job_statuses[job] = {"returncode":None, "stdout":None, "stderr":None, "start_time":time.time(), "attempts":attempts}
         print("JOB STARTED:  ", self.get_job_name(job))
 
     def add_job(self, job:str, passed_data:dict={}, use_blend_file:bool=False, overwrite_blend:bool=True):
@@ -119,11 +120,11 @@ class SCENE_OT_job_manager():
         except (KeyboardInterrupt, SystemExit):
             self.kill_all()
 
-    def process_job(self, job:str):
+    def process_job(self, job:str, debug:bool=False):
         if not self.job_started(job) or (self.job_statuses[job]["returncode"] is not None and self.job_statuses[job]["returncode"] != 0 and self.job_statuses[job]["attempts"] < self.max_attempts):
             if len(self.job_processes) < self.max_workers:
                 self.setup_job(job)
-                self.start_job(job)
+                self.start_job(job, debug=debug)
             return
         job_status = self.job_statuses[job]
         if job_status["returncode"] is not None:
@@ -137,9 +138,10 @@ class SCENE_OT_job_manager():
         else:
             self.job_processes.pop(job)
             job_status["returncode"] = job_process.returncode
-            msgObject = job_process.stdout if job_process.returncode == 0 else job_process.stderr
-            lines = tuple() if msgObject is None else msgObject.readlines()
-            job_status["lines"] = [line.decode("ASCII") for line in lines]
+            stdout_lines = tuple() if job_process.stdout is None else job_process.stdout.readlines()
+            stderr_lines = tuple() if job_process.stderr is None else job_process.stderr.readlines()
+            job_status["stdout"] = [line.decode("ASCII")[:-1] for line in stdout_lines]
+            job_status["stderr"] = [line.decode("ASCII")[:-1] for line in stderr_lines]
             print("JOB CANCELLED:" if job_process.returncode != 0 else "JOB ENDED:    ", self.get_job_name(job), " (returncode:" + str(job_process.returncode) + ")")
             if job_process.returncode == 0:
                 self.retrieve_data(job)
@@ -155,6 +157,9 @@ class SCENE_OT_job_manager():
     def get_job_name(job:str):
         return job.split("/")[-1].split(".")[0]
 
+    def get_job_status(self, job:str):
+        return self.job_statuses[job]
+
     def job_started(self, job:str):
         return job in self.job_statuses.keys()
 
@@ -162,7 +167,7 @@ class SCENE_OT_job_manager():
         return job in self.job_statuses and self.job_statuses[job]["returncode"] == 0
 
     def job_dropped(self, job:str):
-        return job in self.job_statuses and self.job_statuses[job]["attempts"] == self.max_attempts and self.job_statuses[job]["returncode"] is not None
+        return job in self.job_statuses and self.job_statuses[job]["attempts"] == self.max_attempts and self.job_statuses[job]["returncode"] not in (None, 0)
 
     def jobs_complete(self):
         for job in self.jobs:
@@ -172,17 +177,21 @@ class SCENE_OT_job_manager():
 
     def kill_job(self, job:str):
         self.job_processes[job].kill()
+        print("JOB KILLED:   ", self.get_job_name(job))
 
     def kill_all(self):
-        for job in self.job_processes.keys():
-            self.kill_job(job)
+        for job in self.jobs:
+            self.cleanup_job(job)
 
     def cleanup_job(self, job):
         assert job in self.jobs
         self.jobs.remove(job)
         del self.passed_data[job]
-        del self.job_processes[job]
-        del self.job_statuses[job]
+        if job in self.job_processes:
+            self.kill_job(job)
+            del self.job_processes[job]
+        if job in self.job_statuses:
+            del self.job_statuses[job]
 
     def num_available_workers(self):
         return self.max_workers - len(self.job_processes)
