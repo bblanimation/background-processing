@@ -51,9 +51,9 @@ class SCENE_OT_job_manager():
     # class variables
 
     instance = dict()
-    timeout = 0
-    max_workers = 5
-    max_attempts = 2
+    timeout = 0  # amount of time to wait before killing the process (0 for infinite)
+    max_workers = 5  # maximum number of blender instances to run at once
+    max_attempts = 1  # maximum number of times the background processor will attempt to run a job if error occurs
 
     #############################################
     # class methods
@@ -69,7 +69,7 @@ class SCENE_OT_job_manager():
         dataBlendFileName = self.get_job_name(job) + "_data.blend"
         fullPath = os.path.join(self.path, dataBlendFileName)
         sourceBlendFile = self.sourceBlendFile
-        # add new storage path to lines in job file in READ mode
+        # add storage path and additional passed data to lines in job file in READ mode
         src=open(job.replace("\\", ""),"r")
         oline=src.readlines()
         while not oline[0].startswith("#**"):
@@ -89,10 +89,10 @@ class SCENE_OT_job_manager():
     def start_job(self, job:str, debug:bool=False):
         # send job string to background blender instance with subprocess
         attempts = 1 if job not in self.job_statuses.keys() else (self.job_statuses[job]["attempts"] + 1)
-        # TODO: Choose a better exit code than 155
         binary_path = bpy.app.binary_path
         blendfile_path = self.blendfile_path.replace(" ", "\\ ") if self.uses_blend_file[job] else ""
         bash_safe_job = job.replace(" ", "\\ ")
+        # TODO: Choose a better exit code than 155
         thread_func = "%(binary_path)s %(blendfile_path)s -b --python-exit-code 155 -P %(bash_safe_job)s" % locals()
         if debug:
             self.job_processes[job] = subprocess.Popen(thread_func, shell=True)
@@ -102,51 +102,59 @@ class SCENE_OT_job_manager():
         print("JOB STARTED:  ", self.get_job_name(job))
 
     def add_job(self, job:str, passed_data:dict={}, use_blend_file:bool=False, overwrite_blend:bool=True):
+        # cleanup the job if it already exists
         if job in self.jobs:
             self.cleanup_job(job)
+        # add job to the queue
         self.jobs.append(job.replace("\\", ""))
         self.passed_data[job] = passed_data
+        # save the active blend file to be used in Blender instance
         if use_blend_file and (not os.path.exists(self.blendfile_path) or overwrite_blend):
             bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_path, copy=True)
         self.uses_blend_file[job] = use_blend_file
         return True
 
     def process_jobs(self):
-        try:
-            for job in self.jobs:
-                if self.jobs_complete():
-                    break
-                self.process_job(job)
-        except (KeyboardInterrupt, SystemExit):
-            self.kill_all()
+        for job in self.jobs:
+            if self.jobs_complete():
+                break
+            self.process_job(job)
 
     def process_job(self, job:str, debug:bool=False):
-        if not self.job_started(job) or (self.job_statuses[job]["returncode"] is not None and self.job_statuses[job]["returncode"] != 0 and self.job_statuses[job]["attempts"] < self.max_attempts):
+        # check if job has been started
+        if not self.job_started(job) or (self.job_statuses[job]["returncode"] not in (None, 0) and self.job_statuses[job]["attempts"] < self.max_attempts):
+            # start job if background worker available
             if len(self.job_processes) < self.max_workers:
                 self.setup_job(job)
                 self.start_job(job, debug=debug)
             return
         job_status = self.job_statuses[job]
+        # check if job already processed
         if job_status["returncode"] is not None:
             return
+        # check if job has exceeded the time limit
         elif self.timeout > 0 and time.time() - job_status["start_time"] > self.timeout:
             self.kill_job(job)
         job_process = self.job_processes[job]
         job_process.poll()
+        # check if job process still running
         if job_process.returncode is None:
             return
         else:
             self.job_processes.pop(job)
+            # record status of completed job process
             job_status["returncode"] = job_process.returncode
             stdout_lines = tuple() if job_process.stdout is None else job_process.stdout.readlines()
             stderr_lines = tuple() if job_process.stderr is None else job_process.stderr.readlines()
             job_status["stdout"] = [line.decode("ASCII")[:-1] for line in stdout_lines]
             job_status["stderr"] = [line.decode("ASCII")[:-1] for line in stderr_lines]
             print("JOB CANCELLED:" if job_process.returncode != 0 else "JOB ENDED:    ", self.get_job_name(job), " (returncode:" + str(job_process.returncode) + ")")
+            # if job was successful, retrieve any saved blend data
             if job_process.returncode == 0:
                 self.retrieve_data(job)
 
     def retrieve_data(self, job:str):
+        # retrieve blend data stored to temp directory
         dataBlendFileName = self.get_job_name(job) + "_data.blend"
         fullBlendPath = os.path.join(self.path, dataBlendFileName)
         with bpy.data.libraries.load(fullBlendPath) as (data_from, data_to):
@@ -180,7 +188,6 @@ class SCENE_OT_job_manager():
 
     def kill_job(self, job:str):
         self.job_processes[job].kill()
-        print("JOB KILLED:   ", self.get_job_name(job))
 
     def kill_all(self):
         for job in self.jobs:
