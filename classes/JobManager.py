@@ -169,6 +169,9 @@ class SCENE_OT_job_manager():
     def job_dropped(self, job:str):
         return job in self.job_statuses and self.job_statuses[job]["attempts"] == self.max_attempts and self.job_statuses[job]["returncode"] not in (None, 0)
 
+    def job_timed_out(self, job:str):
+        return job in self.job_statuses and self.job_statuses[job]["attempts"] == self.max_attempts and self.job_statuses[job]["returncode"] == -9
+
     def jobs_complete(self):
         for job in self.jobs:
             if not self.job_complete(job):

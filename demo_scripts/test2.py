@@ -1,5 +1,5 @@
-objName = 'GEO-sintel_proxy'  # DO NOT DELETE THIS LINE
-sourceBlendFile = '/Users/cgear13/scripts/my_scripts/resources/blender_test_files/walk_cycle.blend'  # DO NOT DELETE THIS LINE
+objName = 'Cube'  # DO NOT DELETE THIS LINE
+sourceBlendFile = '/Users/cgear13/Desktop/deleteme.blend'  # DO NOT DELETE THIS LINE
 storagePath = '/tmp/background_processing/test2_data.blend'  # DO NOT DELETE THIS LINE
 #** DO NOT DELETE THIS LINE OR EDIT THE LINES ABOVE **#
 
@@ -28,20 +28,20 @@ import bmesh
 import time
 
 appendFrom(objDirectory, objName)
-m = bpy.data.meshes.get(objName)
+obj = bpy.data.objects.get(objName)
 bm = bmesh.new()
-bm.from_mesh(m)
+bm.from_mesh(obj.data)
 v1 = bm.verts.new(( 2,  2, 0))
 v2 = bm.verts.new((-2,  2, 0))
 v3 = bm.verts.new((-2, -2, 0))
 v4 = bm.verts.new(( 2, -2, 0))
 f1 = bm.faces.new((v1, v2, v3, v4))
-bm.to_mesh(m)
+bm.to_mesh(obj.data)
 time.sleep(8)
 
 ### SET 'data_blocks' EQUAL TO LIST OF OBJECT DATA TO BE SEND BACK TO THE BLENDER HOST ###
 
-data_blocks = [m]
+data_blocks = [obj]
 
 ### DO NOT EDIT BEYOND THIS LINE ###
 

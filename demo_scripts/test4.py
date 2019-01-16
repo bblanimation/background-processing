@@ -28,20 +28,20 @@ import bmesh
 import time
 
 appendFrom(meshDirectory, objName)
-m = bpy.data.meshes.get(objName)
+obj = bpy.data.objects.get(objName)
 bm = bmesh.new()
-bm.from_mesh(m)
+bm.from_mesh(obj.data)
 v1 = bm.verts.new(( 2,  2, 0))
 v2 = bm.verts.new((-2,  2, 0))
 v3 = bm.verts.new((-2, -2, 0))
 v4 = bm.verts.new(( 2, -2, 0))
 f1 = bm.faces.new((v1, v2, v3, v4))
-bm.to_mesh(m)
+bm.to_mesh(obj.data)
 time.sleep(3)
 
 ### SET 'data_blocks' EQUAL TO LIST OF OBJECT DATA TO BE SEND BACK TO THE BLENDER HOST ###
 
-data_blocks = [m]
+data_blocks = [obj]
 
 ### DO NOT EDIT BEYOND THIS LINE ###
 
