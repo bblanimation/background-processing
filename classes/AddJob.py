@@ -66,7 +66,7 @@ class SCENE_OT_add_job(Operator):
 
     def modal(self, context, event):
         if event.type == "TIMER":
-            self.JobManager.process_job(self.job, debug=True)
+            self.JobManager.process_job(self.job)
             job_name = self.JobManager.get_job_name(self.job)
             if self.JobManager.job_complete(self.job):
                 self.report({"INFO"}, "Background process '%(job_name)s' was finished" % locals())

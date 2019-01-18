@@ -86,7 +86,7 @@ class SCENE_OT_job_manager():
         src.writelines(oline)
         src.close()
 
-    def start_job(self, job:str, debug:bool=False):
+    def start_job(self, job:str, debug_level:int=0):
         # send job string to background blender instance with subprocess
         attempts = 1 if job not in self.job_statuses.keys() else (self.job_statuses[job]["attempts"] + 1)
         binary_path = bpy.app.binary_path
@@ -94,10 +94,12 @@ class SCENE_OT_job_manager():
         bash_safe_job = job.replace(" ", "\\ ")
         # TODO: Choose a better exit code than 155
         thread_func = "%(binary_path)s %(blendfile_path)s -b --python-exit-code 155 -P %(bash_safe_job)s" % locals()
-        if debug:
-            self.job_processes[job] = subprocess.Popen(thread_func, shell=True)
-        else:
+        if debug_level == 0:
             self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        elif debug_level == 1:
+            self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE, shell=True)
+        else:
+            self.job_processes[job] = subprocess.Popen(thread_func, stderr=subprocess.PIPE, shell=True)
         self.job_statuses[job] = {"returncode":None, "stdout":None, "stderr":None, "start_time":time.time(), "attempts":attempts}
         print("JOB STARTED:  ", self.get_job_name(job))
 
@@ -120,13 +122,13 @@ class SCENE_OT_job_manager():
                 break
             self.process_job(job)
 
-    def process_job(self, job:str, debug:bool=False):
+    def process_job(self, job:str, debug_level:int=0):
         # check if job has been started
         if not self.job_started(job) or (self.job_statuses[job]["returncode"] not in (None, 0) and self.job_statuses[job]["attempts"] < self.max_attempts):
             # start job if background worker available
             if len(self.job_processes) < self.max_workers:
                 self.setup_job(job)
-                self.start_job(job, debug=debug)
+                self.start_job(job, debug_level=debug_level)
             return
         job_status = self.job_statuses[job]
         # check if job already processed
