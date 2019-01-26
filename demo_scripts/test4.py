@@ -1,6 +1,3 @@
-objName = 'GEO-sintel_proxy'  # DO NOT DELETE THIS LINE
-sourceBlendFile = '/Users/cgear13/scripts/my_scripts/resources/blender_test_files/walk_cycle.blend'  # DO NOT DELETE THIS LINE
-storagePath = '/tmp/background_processing/test4_data.blend'  # DO NOT DELETE THIS LINE
 #** DO NOT DELETE THIS LINE OR EDIT THE LINES ABOVE **#
 
 ### DO NOT EDIT THESE LINES ###

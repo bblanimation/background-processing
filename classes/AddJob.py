@@ -51,8 +51,6 @@ class SCENE_OT_add_job(Operator):
         if bpy.data.filepath == "":
             self.report({"WARNING"}, "Please save the file first")
             return {"CANCELLED"}
-        # NOTE: save blend file first if 'use_blend_file' parameter in 'add_job' is set to True.
-        bpy.ops.wm.save_as_mainfile(filepath=bpy.data.filepath)
         # NOTE: Set 'use_blend_file' to True to access data from the current blend file in script (False to execute script from default startup)
         jobAdded = self.JobManager.add_job(jobs[self.job_index], use_blend_file=True, passed_data={"objName":self.targetObjName})
         if not jobAdded:

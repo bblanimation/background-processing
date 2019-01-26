@@ -41,8 +41,7 @@ class SCENE_OT_job_manager():
         self.job_processes = dict()
         self.job_statuses = dict()
         self.stop_now = False
-        self.sourceBlendFile = bpy.data.filepath
-        self.blendfile_path = os.path.join(self.path, bpy.path.basename(bpy.data.filepath))
+        self.blendfile_paths = dict()
         # create '/tmp/background_processing/' path if necessary
         if not os.path.exists(self.path):
             os.makedirs(self.path)
@@ -68,7 +67,7 @@ class SCENE_OT_job_manager():
         # insert final blend file name to top of files
         dataBlendFileName = self.get_job_name(job) + "_data.blend"
         fullPath = os.path.join(self.path, dataBlendFileName)
-        sourceBlendFile = self.sourceBlendFile
+        sourceBlendFile = bpy.data.filepath
         # add storage path and additional passed data to lines in job file in READ mode
         src=open(job.replace("\\", ""),"r")
         oline=src.readlines()
@@ -90,7 +89,7 @@ class SCENE_OT_job_manager():
         # send job string to background blender instance with subprocess
         attempts = 1 if job not in self.job_statuses.keys() else (self.job_statuses[job]["attempts"] + 1)
         binary_path = bpy.app.binary_path
-        blendfile_path = self.blendfile_path.replace(" ", "\\ ") if self.uses_blend_file[job] else ""
+        blendfile_path = self.blendfile_paths[job].replace(" ", "\\ ") if self.uses_blend_file[job] else ""
         bash_safe_job = job.replace(" ", "\\ ")
         # TODO: Choose a better exit code than 155
         thread_func = "%(binary_path)s %(blendfile_path)s -b --python-exit-code 155 -P %(bash_safe_job)s" % locals()
@@ -104,6 +103,7 @@ class SCENE_OT_job_manager():
         print("JOB STARTED:  ", self.get_job_name(job))
 
     def add_job(self, job:str, passed_data:dict={}, use_blend_file:bool=False, overwrite_blend:bool=True):
+        self.blendfile_paths[job] = os.path.join(self.path, bpy.path.basename(bpy.data.filepath))
         # cleanup the job if it already exists
         if job in self.jobs:
             self.cleanup_job(job)
@@ -111,8 +111,8 @@ class SCENE_OT_job_manager():
         self.jobs.append(job.replace("\\", ""))
         self.passed_data[job] = passed_data
         # save the active blend file to be used in Blender instance
-        if use_blend_file and (not os.path.exists(self.blendfile_path) or overwrite_blend):
-            bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_path, copy=True)
+        if use_blend_file and (not os.path.exists(self.blendfile_paths[job]) or overwrite_blend):
+            bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_paths[job], copy=True)
         self.uses_blend_file[job] = use_blend_file
         return True
 

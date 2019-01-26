@@ -1,6 +1,3 @@
-objName = 'Cube'  # DO NOT DELETE THIS LINE
-sourceBlendFile = '/Users/cgear13/Desktop/deleteme.blend'  # DO NOT DELETE THIS LINE
-storagePath = '/tmp/background_processing/test2_data.blend'  # DO NOT DELETE THIS LINE
 #** DO NOT DELETE THIS LINE OR EDIT THE LINES ABOVE **#
 
 ### DO NOT EDIT THESE LINES ###
