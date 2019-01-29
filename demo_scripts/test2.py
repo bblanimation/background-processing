@@ -10,8 +10,8 @@ if bpy.data.filepath == "":
     for mesh in bpy.data.meshes:
         mesh.name = "background_removed"
 data_blocks = []
-objDirectory = "%(sourceBlendFile)s/Object/" % locals()
-meshDirectory = "%(sourceBlendFile)s/Mesh/" % locals()
+objDirectory = os.path.join(sourceBlendFile, "Object")
+meshDirectory = os.path.join(sourceBlendFile, "Mesh")
 def appendFrom(directory, filename):
     filepath = directory + filename
     bpy.ops.wm.append(

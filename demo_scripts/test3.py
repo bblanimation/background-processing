@@ -1,3 +1,6 @@
+objName = 'Cube'  # DO NOT DELETE THIS LINE
+sourceBlendFile = '/Users/cgear13/Desktop/deleteme.blend'  # DO NOT DELETE THIS LINE
+storagePath = '/tmp/background_processing/test3_data.blend'  # DO NOT DELETE THIS LINE
 #** DO NOT DELETE THIS LINE OR EDIT THE LINES ABOVE **#
 
 ### DO NOT EDIT THESE LINES ###
@@ -10,8 +13,8 @@ if bpy.data.filepath == "":
     for mesh in bpy.data.meshes:
         mesh.name = "background_removed"
 data_blocks = []
-objDirectory = "%(sourceBlendFile)s/Object/" % locals()
-meshDirectory = "%(sourceBlendFile)s/Mesh/" % locals()
+objDirectory = os.path.join(sourceBlendFile, "Object")
+meshDirectory = os.path.join(sourceBlendFile, "Mesh")
 def appendFrom(directory, filename):
     filepath = directory + filename
     bpy.ops.wm.append(

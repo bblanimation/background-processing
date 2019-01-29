@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # System imports
-# NONE!
+from os.path import join, dirname, abspath
 
 # Blender imports
 import bpy
@@ -25,11 +25,12 @@ from bpy.types import Operator
 # Addon imports
 from .JobManager import *
 
+demo_scripts_path = join(dirname(dirname(abspath(__file__))), "demo_scripts")
 jobs = [
-    '/Users/cgear13/scripts/patrick_moore/background_processing/demo_scripts/test1.py',
-    '/Users/cgear13/scripts/patrick_moore/background_processing/demo_scripts/test2.py',
-    '/Users/cgear13/scripts/patrick_moore/background_processing/demo_scripts/test3.py',
-    '/Users/cgear13/scripts/patrick_moore/background_processing/demo_scripts/test4.py',
+    join(demo_scripts_path, "test1.py"),
+    join(demo_scripts_path, "test2.py"),
+    join(demo_scripts_path, "test3.py"),
+    join(demo_scripts_path, "test4.py"),
     ]
 
 class SCENE_OT_add_job(Operator):
