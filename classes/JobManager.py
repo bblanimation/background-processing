@@ -47,7 +47,7 @@ class SCENE_OT_job_manager():
     def __init__(self):
         scn = bpy.context.scene
         # initialize vars
-        self.path = os.path.join(*["/", "tmp", "background_processing"][0 if platform in ("linux", "linux2", "darwin") else 1:])
+        self.path = os.path.join(*["/", "tmp", "background_processing"][0 if sys.platform in ("linux", "linux2", "darwin") else 1:])
         self.jobs = list()
         self.passed_data = dict()
         self.uses_blend_file = dict()
