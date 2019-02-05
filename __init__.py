@@ -36,7 +36,7 @@ from .ui import *
 def register():
     bpy.utils.register_module(__name__)
     def updateMaxWorkers(self, context):
-        JobManager = SCENE_OT_job_manager.get_instance()
+        JobManager = JobManager.get_instance()
         JobManager.max_workers = context.scene.backproc_max_workers
     Scene.backproc_max_workers = IntProperty(
         name="Maximum Workers",

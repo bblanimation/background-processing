@@ -80,7 +80,7 @@ def addLines(job, fullPath, sourceBlendFile, passed_data):
     return oline
 
 
-class SCENE_OT_job_manager():
+class JobManager():
     """ Manages and distributes jobs for all available workers """
 
     ################################################
@@ -114,9 +114,9 @@ class SCENE_OT_job_manager():
 
     @staticmethod
     def get_instance(index=0):
-        if index not in SCENE_OT_job_manager.instance:
-            SCENE_OT_job_manager.instance[index] = SCENE_OT_job_manager()
-        return SCENE_OT_job_manager.instance[index]
+        if index not in JobManager.instance:
+            JobManager.instance[index] = JobManager()
+        return JobManager.instance[index]
 
     def setup_job(self, job:str):
         # insert final blend file name to top of files

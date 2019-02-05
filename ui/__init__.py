@@ -42,7 +42,7 @@ class BACKGROUND_PT_interface(Panel):
     def draw(self, context):
         layout = self.layout
         scn = context.scene
-        JobManager = SCENE_OT_job_manager.get_instance()
+        manager = JobManager.get_instance()
 
         col = layout.column(align=True)
         row = col.row(align=True)
@@ -59,12 +59,12 @@ class BACKGROUND_PT_interface(Panel):
         col = layout.column(align=True)
         col.scale_y = 0.7
         row = col.row(align=True)
-        row.label(text="Pending Jobs: " + str(JobManager.num_pending_jobs()))
+        row.label(text="Pending Jobs: " + str(manager.num_pending_jobs()))
         row = col.row(align=True)
-        row.label(text="Running Jobs: " + str(JobManager.num_running_jobs()))
+        row.label(text="Running Jobs: " + str(manager.num_running_jobs()))
         row = col.row(align=True)
-        row.label(text="Completed Jobs: " + str(JobManager.num_completed_jobs()))
+        row.label(text="Completed Jobs: " + str(manager.num_completed_jobs()))
         row = col.row(align=True)
-        row.label(text="Dropped Jobs: " + str(JobManager.num_dropped_jobs()))
+        row.label(text="Dropped Jobs: " + str(manager.num_dropped_jobs()))
         row = col.row(align=True)
-        row.label(text="Available Workers: " + str(JobManager.num_available_workers()))
+        row.label(text="Available Workers: " + str(manager.num_available_workers()))

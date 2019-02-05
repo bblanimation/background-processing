@@ -53,7 +53,7 @@ class SCENE_OT_add_job(Operator):
             self.report({"WARNING"}, "Please save the file first")
             return {"CANCELLED"}
         # NOTE: Set 'use_blend_file' to True to access data from the current blend file in script (False to execute script from default startup)
-        jobAdded = self.JobManager.add_job(jobs[self.job_index], use_blend_file=True, passed_data={"objName":self.targetObjName})
+        jobAdded = self.JobManager.add_job(jobs[self.job_index], use_blend_file=False, passed_data={"objName":bpy.context.object.name, "meshName":bpy.context.object.data.name})
         if not jobAdded:
             self.report({"WARNING"}, "Job already added")
             return {"CANCELLED"}
@@ -65,7 +65,7 @@ class SCENE_OT_add_job(Operator):
 
     def modal(self, context, event):
         if event.type == "TIMER":
-            self.JobManager.process_job(self.job, debug_level=4)
+            self.JobManager.process_job(self.job, debug_level=0)
             job_name = self.JobManager.get_job_name(self.job)
             if self.JobManager.job_complete(self.job):
                 self.report({"INFO"}, "Background process '%(job_name)s' was finished" % locals())
@@ -86,10 +86,9 @@ class SCENE_OT_add_job(Operator):
 
     def __init__(self):
         self.job = jobs[self.job_index]
-        self.JobManager = SCENE_OT_job_manager.get_instance(-1)
+        self.JobManager = JobManager.get_instance(-1)
         self.JobManager.max_workers = 5
-        self.JobManager.timeout = 7
-        self.targetObjName = bpy.context.object.name
+        self.JobManager.timeout = 3
 
     ###################################################
     # class variables
