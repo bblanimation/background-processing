@@ -37,6 +37,48 @@ def splitpath(path):
             break
     return folders[::-1]
 
+linesToAddAtBeginning = [
+    "import bpy\n",
+    # "if bpy.data.filepath == '':\n",
+    # "    for obj in bpy.data.objects:\n",
+    # "        obj.name = 'background_removed'\n",
+    # "    for mesh in bpy.data.meshes:\n",
+    # "        mesh.name = 'background_removed'\n",
+    "data_blocks = []\n",
+    "def appendFrom(typ, filename):\n",
+    "    directory = os.path.join(sourceBlendFile, typ)\n",
+    "    filepath = os.path.join(directory, filename)\n",
+    "    bpy.ops.wm.append(\n",
+    "        filepath=filepath,\n",
+    "        filename=filename,\n",
+    "        directory=directory)\n",
+    "### DO NOT EDIT ABOVE THESE LINES\n\n\n",
+]
+linesToAddAtEnd = [
+    "\n\n### DO NOT EDIT BELOW THESE LINES\n",
+    "assert None not in data_blocks  # ensures that all data from data_blocks exists\n",
+    "if os.path.exists(storagePath):\n",
+    "    os.remove(storagePath)\n",
+    "bpy.data.libraries.write(storagePath, set(data_blocks), fake_user=True)\n",
+]
+
+def addLines(job, fullPath, sourceBlendFile, passed_data):
+    src=open(job,"r")
+    oline=src.readlines()
+    for line in linesToAddAtBeginning[::-1]:
+        oline.insert(0, line)
+    oline.insert(0, "storagePath = os.path.join(*%(fullPath)s)\n" % locals())
+    oline.insert(0, "sourceBlendFile = os.path.join(*%(sourceBlendFile)s)\n" % locals())
+    oline.insert(0, "import os\n" % locals())
+    for key in passed_data:
+        value = passed_data[key]
+        value_str = str(value) if type(value) != str else "'%(value)s'" % locals()
+        oline.insert(0, "%(key)s = %(value_str)s\n" % locals())
+    for line in linesToAddAtEnd:
+        oline.append(line)
+    src.close()
+    return oline
+
 
 class SCENE_OT_job_manager():
     """ Manages and distributes jobs for all available workers """
@@ -47,7 +89,7 @@ class SCENE_OT_job_manager():
     def __init__(self):
         scn = bpy.context.scene
         # initialize vars
-        self.path = os.path.join(*["/", "tmp", "background_processing"][0 if sys.platform in ("linux", "linux2", "darwin") else 1:])
+        self.temp_path = os.path.join(*["/", "tmp", "background_processing"][0 if sys.platform in ("linux", "linux2", "darwin") else 1:])
         self.jobs = list()
         self.passed_data = dict()
         self.uses_blend_file = dict()
@@ -56,8 +98,8 @@ class SCENE_OT_job_manager():
         self.stop_now = False
         self.blendfile_paths = dict()
         # create '/tmp/background_processing/' path if necessary
-        if not os.path.exists(self.path):
-            os.makedirs(self.path)
+        if not os.path.exists(self.temp_path):
+            os.makedirs(self.temp_path)
 
     ###################################################
     # class variables
@@ -79,24 +121,13 @@ class SCENE_OT_job_manager():
     def setup_job(self, job:str):
         # insert final blend file name to top of files
         dataBlendFileName = self.get_job_name(job) + "_data.blend"
-        fullPath = str(splitpath(os.path.join(self.path, dataBlendFileName)))
+        fullPath = str(splitpath(os.path.join(self.temp_path, dataBlendFileName)))
         sourceBlendFile = str(splitpath(bpy.data.filepath))
         # add storage path and additional passed data to lines in job file in READ mode
-        src=open(job,"r")
-        oline=src.readlines()
-        while not oline[0].startswith("#**"):
-            oline.pop(0)
-        oline.insert(0, "storagePath = os.path.join(*%(fullPath)s)  # DO NOT DELETE THIS LINE\n" % locals())
-        oline.insert(0, "sourceBlendFile = os.path.join(*%(sourceBlendFile)s)  # DO NOT DELETE THIS LINE\n" % locals())
-        oline.insert(0, "import os\n")
-        for key in self.passed_data[job]:
-            value = self.passed_data[job][key]
-            value_str = str(value) if type(value) != str else "'%(value)s'" % locals()
-            oline.insert(0, "%(key)s = %(value_str)s  # DO NOT DELETE THIS LINE\n" % locals())
-        src.close()
+        lines = addLines(job, fullPath, sourceBlendFile, self.passed_data[job])
         # write text to job file in WRITE mode
-        src=open(job,"w")
-        src.writelines(oline)
+        src=open(self.get_temp_job_path(job),"w")
+        src.writelines(lines)
         src.close()
 
     def start_job(self, job:str, debug_level:int=0):
@@ -104,24 +135,17 @@ class SCENE_OT_job_manager():
         attempts = 1 if job not in self.job_statuses.keys() else (self.job_statuses[job]["attempts"] + 1)
         binary_path = bpy.app.binary_path
         blendfile_path = self.blendfile_paths[job].replace(" ", "\\ ") if self.uses_blend_file[job] else ""
-        bash_safe_job = job.replace(" ", "\\ ")
+        temp_job_path = self.get_temp_job_path(job)
         # TODO: Choose a better exit code than 155
-        thread_func = "%(binary_path)s %(blendfile_path)s -b --python-exit-code 155 -P %(bash_safe_job)s" % locals()
-        if debug_level == 0:
-            self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        elif debug_level == 1:
-            self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE, shell=True)
-        elif debug_level == 2:
-            self.job_processes[job] = subprocess.Popen(thread_func, stderr=subprocess.PIPE, shell=True)
-        else:
-            self.job_processes[job] = subprocess.Popen(thread_func, shell=True)
+        thread_func = "%(binary_path)s %(blendfile_path)s -b --python-exit-code 155 -P %(temp_job_path)s" % locals()
+        self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE if debug_level < 2 else None, stderr=subprocess.PIPE if debug_level in (0, 2) else None, shell=True)
         self.job_statuses[job] = {"returncode":None, "stdout":None, "stderr":None, "start_time":time.time(), "attempts":attempts}
         print("JOB STARTED:  ", self.get_job_name(job))
 
-    def add_job(self, job:str, passed_data:dict={}, use_blend_file:bool=False, overwrite_blend:bool=True):
+    def add_job(self, job:str, passed_data:dict={}, use_blend_file:bool=True, overwrite_blend:bool=True):
         if bpy.path.basename(bpy.data.filepath) == "":
             raise RuntimeError("'bpy.data.filepath' is empty, please save the Blender file")
-        self.blendfile_paths[job] = os.path.join(self.path, bpy.path.basename(bpy.data.filepath))
+        self.blendfile_paths[job] = os.path.join(self.temp_path, bpy.path.basename(bpy.data.filepath))
         # cleanup the job if it already exists
         if job in self.jobs:
             self.cleanup_job(job)
@@ -176,7 +200,7 @@ class SCENE_OT_job_manager():
     def retrieve_data(self, job:str):
         # retrieve blend data stored to temp directory
         dataBlendFileName = self.get_job_name(job) + "_data.blend"
-        fullBlendPath = os.path.join(self.path, dataBlendFileName)
+        fullBlendPath = os.path.join(self.temp_path, dataBlendFileName)
         with bpy.data.libraries.load(fullBlendPath) as (data_from, data_to):
             for attr in dir(data_to):
                 setattr(data_to, attr, getattr(data_from, attr))
@@ -184,6 +208,9 @@ class SCENE_OT_job_manager():
     @staticmethod
     def get_job_name(job:str):
         return os.path.splitext(os.path.basename(job))[0]
+
+    def get_temp_job_path(self, job:str):
+        return os.path.join(self.temp_path, os.path.basename(job).replace(" ", "_"))
 
     def get_job_status(self, job:str):
         return self.job_statuses[job]
