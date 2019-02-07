@@ -118,6 +118,22 @@ class JobManager():
             JobManager.instance[index] = JobManager()
         return JobManager.instance[index]
 
+    def add_job(self, job:str, passed_data:dict={}, use_blend_file:bool=True, overwrite_blend:bool=True):
+        if bpy.path.basename(bpy.data.filepath) == "":
+            raise RuntimeError("'bpy.data.filepath' is empty, please save the Blender file")
+        self.blendfile_paths[job] = os.path.join(self.temp_path, bpy.path.basename(bpy.data.filepath))
+        # cleanup the job if it already exists
+        if job in self.jobs:
+            self.cleanup_job(job)
+        # add job to the queue
+        self.jobs.append(job)
+        self.passed_data[job] = passed_data
+        # save the active blend file to be used in Blender instance
+        if use_blend_file and (not os.path.exists(self.blendfile_paths[job]) or overwrite_blend):
+            bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_paths[job], copy=True)
+        self.uses_blend_file[job] = use_blend_file
+        return True
+
     def setup_job(self, job:str):
         # insert final blend file name to top of files
         dataBlendFileName = self.get_job_name(job) + "_data.blend"
@@ -141,28 +157,6 @@ class JobManager():
         self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE if debug_level < 2 else None, stderr=subprocess.PIPE if debug_level in (0, 2) else None, shell=True)
         self.job_statuses[job] = {"returncode":None, "stdout":None, "stderr":None, "start_time":time.time(), "attempts":attempts}
         print("JOB STARTED:  ", self.get_job_name(job))
-
-    def add_job(self, job:str, passed_data:dict={}, use_blend_file:bool=True, overwrite_blend:bool=True):
-        if bpy.path.basename(bpy.data.filepath) == "":
-            raise RuntimeError("'bpy.data.filepath' is empty, please save the Blender file")
-        self.blendfile_paths[job] = os.path.join(self.temp_path, bpy.path.basename(bpy.data.filepath))
-        # cleanup the job if it already exists
-        if job in self.jobs:
-            self.cleanup_job(job)
-        # add job to the queue
-        self.jobs.append(job)
-        self.passed_data[job] = passed_data
-        # save the active blend file to be used in Blender instance
-        if use_blend_file and (not os.path.exists(self.blendfile_paths[job]) or overwrite_blend):
-            bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_paths[job], copy=True)
-        self.uses_blend_file[job] = use_blend_file
-        return True
-
-    def process_jobs(self):
-        for job in self.jobs:
-            if self.jobs_complete():
-                break
-            self.process_job(job)
 
     def process_job(self, job:str, debug_level:int=0):
         # check if job has been started
@@ -196,6 +190,12 @@ class JobManager():
             # if job was successful, retrieve any saved blend data
             if job_process.returncode == 0:
                 self.retrieve_data(job)
+
+    def process_jobs(self):
+        for job in self.jobs:
+            if self.jobs_complete():
+                break
+            self.process_job(job)
 
     def retrieve_data(self, job:str):
         # retrieve blend data stored to temp directory
