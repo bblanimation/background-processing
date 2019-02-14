@@ -16,11 +16,11 @@ Run blender processes in the background with separate instances of Blender.
         * The background processor will automatically copy these data blocks to the active instance of Blender upon job completion
 * Send scripts to the JobManager for execution
     * Jobs can be added from within a separate operator/code block using the following code:
-``` Python
+        ``` Python
         from .JobManager import *  # relative JobManager import path (current path assumes script is in same root folder as 'JobManager.py')
         job = "/tmp/test_script.py"  # REPLACE with path to your background processing script
         JobManager = JobManager.get_instance()
         JobManager.add_job(job)
-```
+        ```
     * You'll find the entire background processing API in the Job Manager class (`classes/JobManager.py`)
     * See `classes/AddJob.py` for an example use of the JobManager class API in a custom operator
