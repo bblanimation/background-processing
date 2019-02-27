@@ -106,7 +106,7 @@ class JobManager():
     def __init__(self):
         scn = bpy.context.scene
         # initialize vars
-        self.temp_path = os.path.join(*["/", "tmp", "background_processing"][0 if sys.platform in ("linux", "linux2", "darwin") else 1:])
+        self.temp_path = os.path.join(*[os.path.abspath(os.sep), "tmp", "background_processing"])
         self.jobs = list()
         self.passed_data = dict()
         self.uses_blend_file = dict()
