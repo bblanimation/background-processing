@@ -29,9 +29,9 @@ from ..classes.JobManager import *
 
 class BACKGROUND_PT_interface(Panel):
     bl_space_type  = "VIEW_3D"
-    bl_region_type = "TOOLS"
+    bl_region_type = "UI"
     bl_label       = "Background Processing"
-    bl_idname      = "VIEW3D_PT_tools_background_processing"
+    bl_idname      = "VIEW3D_PT_ui_background_processing"
     bl_context     = "objectmode"
     bl_category    = "BackProc"
 
