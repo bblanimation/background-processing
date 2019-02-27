@@ -34,7 +34,8 @@ from .classes import *
 from .ui import *
 
 def register():
-    bpy.utils.register_module(__name__)
+    bpy.utils.register_class(SCENE_OT_add_job)
+    bpy.utils.register_class(BACKGROUND_PT_interface)
     def updateMaxWorkers(self, context):
         JobManager = JobManager.get_instance()
         JobManager.max_workers = context.scene.backproc_max_workers
@@ -47,4 +48,5 @@ def register():
 
 def unregister():
     del Scene.backproc_max_workers
-    bpy.utils.unregister_module(__name__)
+    bpy.utils.unregister_class(BACKGROUND_PT_interface)
+    bpy.utils.unregister_class(SCENE_OT_add_job)
