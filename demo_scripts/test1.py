@@ -8,6 +8,10 @@ obj = bpy.data.objects.get(objName)
 rMod = obj.modifiers.new(obj.name + '_remesh', 'REMESH')
 m = obj.to_mesh(bpy.context.scene, True, 'PREVIEW')
 m.name = objName + "_remesh"
+pi = 3.14159
 
 # set 'data_blocks' equal to list of object data to be sent back to the Blender host
 data_blocks = [obj]
+
+# set 'data_blocks' equal to dictionary of python data to be sent back to the Blender host
+python_data = {"pi":pi}
