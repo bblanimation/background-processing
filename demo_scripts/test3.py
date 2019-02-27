@@ -4,7 +4,7 @@ import time
 
 # NOTE: If 'use_blend_file' property enabled in 'add_job' call, reference blend data from source file directly.
 # NOTE: Else, pull objects and meshes from source file using 'appendFrom(data_type:str, data_name:str)'.
-appendFrom("Object", objName)
+appendFrom('Object', objName)
 source_ob = bpy.data.objects.get(objName)
 
 meta_data = bpy.data.metaballs.new('Volume Data')
@@ -16,12 +16,11 @@ for v in source_ob.data.vertices:
     mb.co = v.co
 
 scn = bpy.context.scene
-scn.objects.link(meta_obj)
+scn.collection.objects.link(meta_obj)
 scn.update()
 
-out_me = meta_obj.to_mesh(scn, apply_modifiers=True, settings='PREVIEW')
+out_me = meta_obj.to_mesh(bpy.context.depsgraph, True)
 out_ob = bpy.data.objects.new('Volume Mesh Object', out_me)
-scn.objects.link(out_ob)
 
 bpy.data.objects.remove(meta_obj, do_unlink=True)
 bpy.data.metaballs.remove(meta_data)
