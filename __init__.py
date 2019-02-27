@@ -19,7 +19,7 @@ bl_info = {
     "name"        : "Background Processing",
     "author"      : "Christopher Gearhart <chris@bblanimation.com>",
     "version"     : (1, 0, 0),
-    "blender"     : (2, 79, 0),
+    "blender"     : (2, 80, 0),
     "description" : "Process in the background with a separate instance of Blender",
     "location"    : "View3D > Tools > Bricker",
     "warning"     : "",  # used for warning icon and text in addons panel
