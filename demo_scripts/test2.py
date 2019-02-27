@@ -17,8 +17,8 @@ bm.to_mesh(mesh)
 obj = bpy.data.objects.new("Square Object", mesh)
 pi = 3.14159
 
-# set 'data_blocks' equal to list of object data to be sent back to the Blender host
-data_blocks = [obj]
-
 # set 'data_blocks' equal to dictionary of python data to be sent back to the Blender host
 python_data = {"pi":pi}
+
+# set 'data_blocks' equal to list of object data to be sent back to the Blender host
+data_blocks = [obj]

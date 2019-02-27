@@ -70,9 +70,11 @@ linesToAddAtBeginning = [
 linesToAddAtEnd = [
     "\n\n### DO NOT EDIT BELOW THESE LINES\n",
     "assert None not in data_blocks  # ensures that all data from data_blocks exists\n",
+    # write Blender data blocks to library in temp location 'storagePath'
     "if os.path.exists(storagePath):\n",
     "    os.remove(storagePath)\n",
     "bpy.data.libraries.write(storagePath, set(data_blocks), fake_user=True)\n",
+    # write python data to library in temp location 'storagePath'
     "data_file = open(storagePath.replace('.blend', '.py'), 'w')\n",
     "print(json.dumps(python_data), file=data_file)\n",
 ]
@@ -213,6 +215,11 @@ class JobManager():
             self.process_job(job)
 
     def retrieve_data(self, job:str, job_status:dict):
+        # retrieve python data stored to temp directory
+        dataFileName = self.get_job_name(job) + "_data.py"
+        dataFilePath = os.path.join(self.temp_path, dataFileName)
+        dumpedDict = open(dataFilePath, "r").readline()
+        job_status["retrieved_python_data"] = json.loads(dumpedDict) if dumpedDict != "" else {}
         # retrieve blend data stored to temp directory
         dataBlendFileName = self.get_job_name(job) + "_data.blend"
         fullBlendPath = os.path.join(self.temp_path, dataBlendFileName)
@@ -220,11 +227,6 @@ class JobManager():
             for attr in dir(data_to):
                 setattr(data_to, attr, getattr(data_from, attr))
         job_status["retrieved_data_blocks"] = data_to
-        # retrieve python data stored to temp directory
-        dataFileName = self.get_job_name(job) + "_data.py"
-        dataFilePath = os.path.join(self.temp_path, dataFileName)
-        dumpedDict = open(dataFilePath, "r").readline()
-        job_status["retrieved_python_data"] = json.loads(dumpedDict) if dumpedDict != "" else {}
 
     @staticmethod
     def get_job_name(job:str):
@@ -236,13 +238,13 @@ class JobManager():
     def get_job_status(self, job:str):
         return self.job_statuses[job]
 
-    def get_retrieved_data_blocks(self, job:str):
-        job_status = self.job_statuses[job]
-        return job_status["retrieved_data_blocks"]
-
     def get_retrieved_python_data(self, job:str):
         job_status = self.job_statuses[job]
         return job_status["retrieved_python_data"]
+
+    def get_retrieved_data_blocks(self, job:str):
+        job_status = self.job_statuses[job]
+        return job_status["retrieved_data_blocks"]
 
     def job_started(self, job:str):
         return job in self.job_statuses.keys()
