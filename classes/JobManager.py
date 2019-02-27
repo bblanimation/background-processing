@@ -73,6 +73,12 @@ linesToAddAtEnd = [
     # write Blender data blocks to library in temp location 'storagePath'
     "if os.path.exists(storagePath):\n",
     "    os.remove(storagePath)\n",
+    "print(storagePath)\n",
+    "storageDir = os.path.dirname(storagePath)\n", 
+    "print(storageDir)\n",
+    "if not os.path.exists(storageDir):\n",
+    "    print('make storage dir first')\n",
+    "    os.path.makedirs(storageDir)\n",
     "bpy.data.libraries.write(storagePath, set(data_blocks), fake_user=True)\n",
     # write python data to library in temp location 'storagePath'
     "data_file = open(storagePath.replace('.blend', '.py'), 'w')\n",
@@ -116,6 +122,9 @@ class JobManager():
         self.blendfile_paths = dict()
         # create '/tmp/background_processing/' path if necessary
         if not os.path.exists(self.temp_path):
+            print('making temp dictory')
+            print(self.temp_path)
+            print(os.path.abspath(self.temp_path))
             os.makedirs(self.temp_path)
 
     ###################################################
@@ -138,7 +147,11 @@ class JobManager():
     def add_job(self, job:str, passed_data:dict={}, use_blend_file:bool=True, overwrite_blend:bool=True):
         if bpy.path.basename(bpy.data.filepath) == "":
             raise RuntimeError("'bpy.data.filepath' is empty, please save the Blender file")
-        self.blendfile_paths[job] = os.path.join(self.temp_path, bpy.path.basename(bpy.data.filepath))
+        print('ADD JOB WITH THIS FILE PATH')
+        bf_path = os.path.join(self.temp_path, bpy.path.basename(bpy.data.filepath))
+        print(bf_path)
+        print(os.path.abspath(bf_path))
+        self.blendfile_paths[job] = bf_path
         # cleanup the job if it already exists
         if job in self.jobs:
             self.cleanup_job(job)
@@ -154,8 +167,11 @@ class JobManager():
     def setup_job(self, job:str):
         # insert final blend file name to top of files
         dataBlendFileName = self.get_job_name(job) + "_data.blend"
-        fullPath = str(splitpath(os.path.join(self.temp_path, dataBlendFileName)))
+        fullPath = str(splitpath(os.path.join(os.path.abspath(self.temp_path), dataBlendFileName)))
         sourceBlendFile = str(splitpath(bpy.data.filepath))
+        
+        print(fullPath)
+        print(sourceBlendFile)
         # add storage path and additional passed data to lines in job file in READ mode
         lines = addLines(job, fullPath, sourceBlendFile, self.passed_data[job])
         # write text to job file in WRITE mode
@@ -169,6 +185,7 @@ class JobManager():
         binary_path = bpy.app.binary_path
         blendfile_path = self.blendfile_paths[job].replace(" ", "\\ ") if self.uses_blend_file[job] else ""
         temp_job_path = self.get_temp_job_path(job)
+        print(temp_job_path)
         # TODO: Choose a better exit code than 155
         thread_func = "%(binary_path)s %(blendfile_path)s -b --python-exit-code 155 -P %(temp_job_path)s" % locals()
         self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE if debug_level < 2 else None, stderr=subprocess.PIPE if debug_level in (0, 2) else None, shell=True)
@@ -217,12 +234,12 @@ class JobManager():
     def retrieve_data(self, job:str, job_status:dict):
         # retrieve python data stored to temp directory
         dataFileName = self.get_job_name(job) + "_data.py"
-        dataFilePath = os.path.join(self.temp_path, dataFileName)
+        dataFilePath = os.path.join(os.path.abspath(self.temp_path), dataFileName)
         dumpedDict = open(dataFilePath, "r").readline()
         job_status["retrieved_python_data"] = json.loads(dumpedDict) if dumpedDict != "" else {}
         # retrieve blend data stored to temp directory
         dataBlendFileName = self.get_job_name(job) + "_data.blend"
-        fullBlendPath = os.path.join(self.temp_path, dataBlendFileName)
+        fullBlendPath = os.path.join(os.path.abspath(self.temp_path), dataBlendFileName)
         with bpy.data.libraries.load(fullBlendPath) as (data_from, data_to):
             for attr in dir(data_to):
                 setattr(data_to, attr, getattr(data_from, attr))
