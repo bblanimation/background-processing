@@ -19,6 +19,7 @@
 import os
 import subprocess
 import time
+import json
 import sys
 
 # Blender imports
@@ -49,12 +50,14 @@ def bashSafeName(string):
 
 linesToAddAtBeginning = [
     "import bpy\n",
+    "import json\n",
     # "if bpy.data.filepath == '':\n",
     # "    for obj in bpy.data.objects:\n",
     # "        obj.name = 'background_removed'\n",
     # "    for mesh in bpy.data.meshes:\n",
     # "        mesh.name = 'background_removed'\n",
-    "data_blocks = []\n",
+    "data_blocks = list()\n",
+    "python_data = list()\n",
     "def appendFrom(typ, filename):\n",
     "    directory = os.path.join(sourceBlendFile, typ)\n",
     "    filepath = os.path.join(directory, filename)\n",
@@ -67,9 +70,13 @@ linesToAddAtBeginning = [
 linesToAddAtEnd = [
     "\n\n### DO NOT EDIT BELOW THESE LINES\n",
     "assert None not in data_blocks  # ensures that all data from data_blocks exists\n",
+    # write Blender data blocks to library in temp location 'storagePath'
     "if os.path.exists(storagePath):\n",
     "    os.remove(storagePath)\n",
     "bpy.data.libraries.write(storagePath, set(data_blocks), fake_user=True)\n",
+    # write python data to library in temp location 'storagePath'
+    "data_file = open(storagePath.replace('.blend', '.py'), 'w')\n",
+    "print(json.dumps(python_data), file=data_file)\n",
 ]
 
 def addLines(job, fullPath, sourceBlendFile, passed_data):
@@ -140,7 +147,7 @@ class JobManager():
         self.passed_data[job] = passed_data
         # save the active blend file to be used in Blender instance
         if use_blend_file and (not os.path.exists(self.blendfile_paths[job]) or overwrite_blend):
-            bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_paths[job], copy=True)
+            bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_paths[job], compress=False, copy=True)
         self.uses_blend_file[job] = use_blend_file
         return True
 
@@ -199,7 +206,7 @@ class JobManager():
             print("JOB CANCELLED:" if job_process.returncode != 0 else "JOB ENDED:    ", self.get_job_name(job), " (returncode:" + str(job_process.returncode) + ")")
             # if job was successful, retrieve any saved blend data
             if job_process.returncode == 0:
-                self.retrieve_data(job)
+                self.retrieve_data(job, job_status)
 
     def process_jobs(self):
         for job in self.jobs:
@@ -207,13 +214,19 @@ class JobManager():
                 break
             self.process_job(job)
 
-    def retrieve_data(self, job:str):
+    def retrieve_data(self, job:str, job_status:dict):
+        # retrieve python data stored to temp directory
+        dataFileName = self.get_job_name(job) + "_data.py"
+        dataFilePath = os.path.join(self.temp_path, dataFileName)
+        dumpedDict = open(dataFilePath, "r").readline()
+        job_status["retrieved_python_data"] = json.loads(dumpedDict) if dumpedDict != "" else {}
         # retrieve blend data stored to temp directory
         dataBlendFileName = self.get_job_name(job) + "_data.blend"
         fullBlendPath = os.path.join(self.temp_path, dataBlendFileName)
         with bpy.data.libraries.load(fullBlendPath) as (data_from, data_to):
             for attr in dir(data_to):
                 setattr(data_to, attr, getattr(data_from, attr))
+        job_status["retrieved_data_blocks"] = data_to
 
     @staticmethod
     def get_job_name(job:str):
@@ -224,6 +237,14 @@ class JobManager():
 
     def get_job_status(self, job:str):
         return self.job_statuses[job]
+
+    def get_retrieved_python_data(self, job:str):
+        job_status = self.job_statuses[job]
+        return job_status["retrieved_python_data"]
+
+    def get_retrieved_data_blocks(self, job:str):
+        job_status = self.job_statuses[job]
+        return job_status["retrieved_data_blocks"]
 
     def job_started(self, job:str):
         return job in self.job_statuses.keys()

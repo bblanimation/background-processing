@@ -69,6 +69,10 @@ class SCENE_OT_add_job(Operator):
             job_name = self.JobManager.get_job_name(self.job)
             if self.JobManager.job_complete(self.job):
                 self.report({"INFO"}, "Background process '%(job_name)s' was finished" % locals())
+                retrieved_data_blocks = self.JobManager.get_retrieved_data_blocks(self.job)
+                retrieved_python_data = self.JobManager.get_retrieved_python_data(self.job)
+                print(retrieved_data_blocks.objects)
+                print(retrieved_python_data)
                 return {"FINISHED"}
             if self.JobManager.job_dropped(self.job):
                 if self.JobManager.job_timed_out(self.job):

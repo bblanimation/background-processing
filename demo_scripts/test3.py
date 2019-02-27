@@ -26,5 +26,8 @@ scn.objects.link(out_ob)
 bpy.data.objects.remove(meta_obj, do_unlink=True)
 bpy.data.metaballs.remove(meta_data)
 
+# set 'data_blocks' equal to dictionary of python data to be sent back to the Blender host
+python_data = {}
+
 # set 'data_blocks' equal to list of object data to be sent back to the Blender host
 data_blocks = [out_ob]
