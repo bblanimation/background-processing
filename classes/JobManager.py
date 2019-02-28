@@ -79,6 +79,26 @@ linesToAddAtEnd = [
     "print(json.dumps(python_data), file=data_file)\n",
 ]
 
+def getElapsedTime(startTime, endTime, precision:int=2):
+    """From seconds to Days;Hours:Minutes;Seconds"""
+    value = endTime-startTime
+
+    valueD = (((value/365)/24)/60)
+    Days = int(valueD)
+
+    valueH = (valueD-Days)*365
+    Hours = int(valueH)
+
+    valueM = (valueH - Hours)*24
+    Minutes = int(valueM)
+
+    valueS = (valueM - Minutes)*60
+    Seconds = round(valueS, precision)
+
+    outputString = str(Days) + ";" + str(Hours) + ":" + str(Minutes) + ";" + str(Seconds)
+    return outputString
+
+
 def addLines(job, fullPath, sourceBlendFile, passed_data):
     src=open(job,"r")
     oline=src.readlines()
@@ -112,6 +132,7 @@ class JobManager():
         self.uses_blend_file = dict()
         self.job_processes = dict()
         self.job_statuses = dict()
+        self.retrieved_data = dict()
         self.stop_now = False
         self.blendfile_paths = dict()
         # create '/tmp/background_processing/' path if necessary
@@ -172,7 +193,8 @@ class JobManager():
         # TODO: Choose a better exit code than 155
         thread_func = "%(binary_path)s %(blendfile_path)s -b --python-exit-code 155 -P %(temp_job_path)s" % locals()
         self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE if debug_level < 2 else None, stderr=subprocess.PIPE if debug_level in (0, 2) else None, shell=True)
-        self.job_statuses[job] = {"returncode":None, "stdout":None, "stderr":None, "start_time":time.time(), "attempts":attempts}
+        self.job_statuses[job] = {"returncode":None, "stdout":None, "stderr":None, "start_time":time.time(), "end_time":None, "attempts":attempts}
+        self.retrieved_data[job] = {"retrieved_data_blocks":None, "retrieved_python_data":None}
         print("JOB STARTED:  ", self.get_job_name(job))
 
     def process_job(self, job:str, debug_level:int=0):
@@ -198,15 +220,16 @@ class JobManager():
         else:
             self.job_processes.pop(job)
             # record status of completed job process
+            job_status["end_time"] = time.time()
             job_status["returncode"] = job_process.returncode
             stdout_lines = tuple() if job_process.stdout is None else job_process.stdout.readlines()
             stderr_lines = tuple() if job_process.stderr is None else job_process.stderr.readlines()
             job_status["stdout"] = [line.decode("ASCII")[:-1] for line in stdout_lines]
             job_status["stderr"] = [line.decode("ASCII")[:-1] for line in stderr_lines]
-            print("JOB CANCELLED:" if job_process.returncode != 0 else "JOB ENDED:    ", self.get_job_name(job), " (returncode:" + str(job_process.returncode) + ")")
+            print("JOB CANCELLED:" if job_process.returncode != 0 else "JOB ENDED:    ", self.get_job_name(job), " (returncode:" + str(job_process.returncode) + ")" if job_process.returncode != 0 else "(time elapsed:" + getElapsedTime(job_status["start_time"], job_status["end_time"]) + ")")
             # if job was successful, retrieve any saved blend data
             if job_process.returncode == 0:
-                self.retrieve_data(job, job_status)
+                self.retrieve_data(job)
 
     def process_jobs(self):
         for job in self.jobs:
@@ -214,19 +237,19 @@ class JobManager():
                 break
             self.process_job(job)
 
-    def retrieve_data(self, job:str, job_status:dict):
+    def retrieve_data(self, job:str):
         # retrieve python data stored to temp directory
         dataFileName = self.get_job_name(job) + "_data.py"
         dataFilePath = os.path.join(self.temp_path, dataFileName)
         dumpedDict = open(dataFilePath, "r").readline()
-        job_status["retrieved_python_data"] = json.loads(dumpedDict) if dumpedDict != "" else {}
+        self.retrieved_data[job]["retrieved_python_data"] = json.loads(dumpedDict) if dumpedDict != "" else {}
         # retrieve blend data stored to temp directory
         dataBlendFileName = self.get_job_name(job) + "_data.blend"
         fullBlendPath = os.path.join(self.temp_path, dataBlendFileName)
         with bpy.data.libraries.load(fullBlendPath) as (data_from, data_to):
             for attr in dir(data_to):
                 setattr(data_to, attr, getattr(data_from, attr))
-        job_status["retrieved_data_blocks"] = data_to
+        self.retrieved_data[job]["retrieved_data_blocks"] = data_to
 
     @staticmethod
     def get_job_name(job:str):
@@ -239,12 +262,10 @@ class JobManager():
         return self.job_statuses[job]
 
     def get_retrieved_python_data(self, job:str):
-        job_status = self.job_statuses[job]
-        return job_status["retrieved_python_data"]
+        return self.retrieved_data[job]["retrieved_python_data"]
 
     def get_retrieved_data_blocks(self, job:str):
-        job_status = self.job_statuses[job]
-        return job_status["retrieved_data_blocks"]
+        return self.retrieved_data[job]["retrieved_data_blocks"]
 
     def job_started(self, job:str):
         return job in self.job_statuses.keys()
@@ -280,6 +301,8 @@ class JobManager():
             del self.job_processes[job]
         if job in self.job_statuses:
             del self.job_statuses[job]
+        if job in self.retrieved_data:
+            del self.retrieved_data[job]
 
     def num_available_workers(self):
         return self.max_workers - len(self.job_processes)
