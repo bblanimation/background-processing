@@ -60,7 +60,10 @@ linesToAddAtBeginning = [
     "python_data = list()\n",
     "def appendFrom(typ, filename):\n",
     "    directory = os.path.join(sourceBlendFile, typ)\n",
+    "    print(directory)\n",
     "    filepath = os.path.join(directory, filename)\n",
+    "    print(filepath)\n",
+    "    print(filename)\n",
     "    bpy.ops.wm.append(\n",
     "        filepath=filepath,\n",
     "        filename=filename,\n",
@@ -126,7 +129,7 @@ class JobManager():
     def __init__(self):
         scn = bpy.context.scene
         # initialize vars
-        self.temp_path = os.path.join(*[os.path.abspath(os.sep), "tmp", "background_processing"])
+        self.temp_path = os.path.abspath(os.path.join(*[os.path.abspath(os.sep), "tmp", "background_processing"]))
         self.jobs = list()
         self.passed_data = dict()
         self.uses_blend_file = dict()
