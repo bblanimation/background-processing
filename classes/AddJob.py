@@ -53,7 +53,7 @@ class SCENE_OT_add_job(Operator):
             self.report({"WARNING"}, "Please save the file first")
             return {"CANCELLED"}
         # NOTE: Set 'use_blend_file' to True to access data from the current blend file in script (False to execute script from default startup)
-        jobAdded = self.JobManager.add_job(self.job, use_blend_file=True, passed_data={"objName":bpy.context.object.name, "meshName":bpy.context.object.data.name})
+        jobAdded = self.JobManager.add_job(self.job, hash=obj.name, use_blend_file=True, passed_data={"objName":bpy.context.object.name, "meshName":bpy.context.object.data.name})
         if not jobAdded:
             self.report({"WARNING"}, "Job already added")
             return {"CANCELLED"}
