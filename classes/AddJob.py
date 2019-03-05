@@ -26,7 +26,7 @@ from bpy.types import Operator
 from .JobManager import *
 
 demo_scripts_path = join(dirname(dirname(abspath(__file__))), "demo_scripts")
-jobs = [
+scripts = [
     join(demo_scripts_path, "test1.py"),
     join(demo_scripts_path, "test2.py"),
     join(demo_scripts_path, "test3.py"),
@@ -53,7 +53,7 @@ class SCENE_OT_add_job(Operator):
             self.report({"WARNING"}, "Please save the file first")
             return {"CANCELLED"}
         # NOTE: Set 'use_blend_file' to True to access data from the current blend file in script (False to execute script from default startup)
-        jobAdded = self.JobManager.add_job(self.job, hash=obj.name, use_blend_file=True, passed_data={"objName":bpy.context.object.name, "meshName":bpy.context.object.data.name})
+        jobAdded = self.JobManager.add_job(self.job["name"], script=self.job["script"], use_blend_file=True, passed_data={"objName":self.obj.name, "meshName":self.obj.data.name})
         if not jobAdded:
             self.report({"WARNING"}, "Job already added")
             return {"CANCELLED"}
@@ -65,31 +65,31 @@ class SCENE_OT_add_job(Operator):
 
     def modal(self, context, event):
         if event.type == "TIMER":
-            self.JobManager.process_job(self.job, debug_level=0)
-            job_name = self.JobManager.get_job_name(self.job)
-            if self.JobManager.job_complete(self.job):
-                self.report({"INFO"}, "Background process '%(job_name)s' was finished" % locals())
-                retrieved_data_blocks = self.JobManager.get_retrieved_data_blocks(self.job)
-                retrieved_python_data = self.JobManager.get_retrieved_python_data(self.job)
+            self.JobManager.process_job(self.job["name"], debug_level=0)
+            if self.JobManager.job_complete(self.job["name"]):
+                self.report({"INFO"}, "Background process '{job_name}' was finished".format(job_name=self.job["name"]))
+                retrieved_data_blocks = self.JobManager.get_retrieved_data_blocks(self.job["name"])
+                retrieved_python_data = self.JobManager.get_retrieved_python_data(self.job["name"])
                 print(retrieved_data_blocks.objects)
                 print(retrieved_python_data)
                 return {"FINISHED"}
-            if self.JobManager.job_dropped(self.job):
-                if self.JobManager.job_timed_out(self.job):
-                    self.report({"WARNING"}, "Background process '%(job_name)s' timed out" % locals())
+            if self.JobManager.job_dropped(self.job["name"]):
+                if self.JobManager.job_timed_out(self.job["name"]):
+                    self.report({"WARNING"}, "Background process '{job_name}' timed out".format(job_name=self.job["name"]))
                 else:
-                    self.report({"WARNING"}, "Background process '%(job_name)s' was dropped" % locals())
+                    self.report({"WARNING"}, "Background process '{job_name}' was dropped".format(job_name=self.job["name"]))
                 return {"CANCELLED"}
         return {"PASS_THROUGH"}
 
     def cancel(self, context):
-        self.JobManager.kill_job(self.job)
+        self.JobManager.kill_job(self.job["name"])
 
     ################################################
     # initialization method
 
     def __init__(self):
-        self.job = jobs[self.job_index]
+        self.obj = bpy.context.object
+        self.job = {"name":os.path.basename(scripts[self.job_index]) + "_" + self.obj.name, "script":scripts[self.job_index]}
         self.JobManager = JobManager.get_instance(-1)
         self.JobManager.max_workers = 5
         self.JobManager.timeout = 3

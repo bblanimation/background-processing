@@ -60,10 +60,7 @@ linesToAddAtBeginning = [
     "python_data = list()\n",
     "def appendFrom(typ, filename):\n",
     "    directory = os.path.join(sourceBlendFile, typ)\n",
-    "    print(directory)\n",
     "    filepath = os.path.join(directory, filename)\n",
-    "    print(filepath)\n",
-    "    print(filename)\n",
     "    bpy.ops.wm.append(\n",
     "        filepath=filepath,\n",
     "        filename=filename,\n",
@@ -79,7 +76,6 @@ linesToAddAtEnd = [
     "bpy.data.libraries.write(storagePath, set(data_blocks), fake_user=True)\n",
     # write python data to library in temp location 'storagePath'
     "data_file = open(storagePath.replace('.blend', '.py'), 'w')\n",
-    "print(json.dumps(python_data), file=data_file)\n",
 ]
 
 def getElapsedTime(startTime, endTime, precision:int=2):
@@ -102,8 +98,8 @@ def getElapsedTime(startTime, endTime, precision:int=2):
     return outputString
 
 
-def addLines(job, fullPath, sourceBlendFile, passed_data):
-    src=open(job,"r")
+def addLines(script, fullPath, sourceBlendFile, passed_data):
+    src=open(script,"r")
     oline=src.readlines()
     for line in linesToAddAtBeginning[::-1]:
         oline.insert(0, line)
@@ -160,34 +156,33 @@ class JobManager():
             JobManager.instance[index] = JobManager()
         return JobManager.instance[index]
 
-    def add_job(self, job:str, hash:str="", passed_data:dict={}, use_blend_file:bool=True, overwrite_blend:bool=True):
+    def add_job(self, job:str, script:str, passed_data:dict={}, use_blend_file:bool=True, overwrite_blend:bool=True):
+        # ensure blender file is saved
         if bpy.path.basename(bpy.data.filepath) == "":
             raise RuntimeError("'bpy.data.filepath' is empty, please save the Blender file")
-        self.blendfile_paths[job] = os.path.join(self.temp_path, bpy.path.basename(bpy.data.filepath))
         # cleanup the job if it already exists
         if job in self.jobs:
             self.cleanup_job(job)
         # add job to the queue
         self.jobs.append(job)
-        self.job_paths[job] = get_job_path(job, hash)
+        self.job_paths[job] = self.get_job_path(script, hash=job)
+        self.blendfile_paths[job] = os.path.join(self.temp_path, bpy.path.basename(bpy.data.filepath))
         self.passed_data[job] = passed_data
+        self.uses_blend_file[job] = use_blend_file
         # save the active blend file to be used in Blender instance
         if use_blend_file and (not os.path.exists(self.blendfile_paths[job]) or overwrite_blend):
             bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_paths[job], compress=False, copy=True)
-        self.uses_blend_file[job] = use_blend_file
-        return True
-
-    def setup_job(self, job:str):
         # insert final blend file name to top of files
         dataBlendFileName = self.get_job_name(job) + "_data.blend"
         fullPath = str(splitpath(os.path.join(self.temp_path, dataBlendFileName)))
         sourceBlendFile = str(splitpath(bpy.data.filepath))
         # add storage path and additional passed data to lines in job file in READ mode
-        lines = addLines(job, fullPath, sourceBlendFile, self.passed_data[job])
+        lines = addLines(script, fullPath, sourceBlendFile, self.passed_data[job])
         # write text to job file in WRITE mode
         src=open(self.job_paths[job],"w")
         src.writelines(lines)
         src.close()
+        return True
 
     def start_job(self, job:str, debug_level:int=0):
         # send job string to background blender instance with subprocess
@@ -207,7 +202,6 @@ class JobManager():
         if not self.job_started(job) or (self.job_statuses[job]["returncode"] not in (None, 0) and self.job_statuses[job]["attempts"] < self.max_attempts):
             # start job if background worker available
             if len(self.job_processes) < self.max_workers:
-                self.setup_job(job)
                 self.start_job(job, debug_level=debug_level)
             return
         job_status = self.job_statuses[job]

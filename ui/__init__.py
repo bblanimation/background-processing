@@ -52,7 +52,7 @@ class BACKGROUND_PT_interface(Panel):
         row = col.row(align=True)
         row.operator("scene.add_job", text="Add Job 3").job_index = 2
         row = col.row(align=True)
-        row.operator("scene.add_job", text="Add Job 4").job_index = 3
+        row.operator("scene.add_job", text="Add Job 4 (timeout)").job_index = 3
         col = layout.column(align=True)
         row = col.row(align=True)
         row.prop(scn, "backproc_max_workers")
