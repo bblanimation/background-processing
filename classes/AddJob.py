@@ -89,7 +89,8 @@ class SCENE_OT_add_job(Operator):
 
     def __init__(self):
         self.obj = bpy.context.object
-        self.job = {"name":os.path.basename(scripts[self.job_index]) + "_" + self.obj.name, "script":scripts[self.job_index]}
+        script = scripts[self.job_index]
+        self.job = {"name":os.path.basename(script) + "_" + self.obj.name, "script":script}
         self.JobManager = JobManager.get_instance(-1)
         self.JobManager.max_workers = 5
         self.JobManager.timeout = 3

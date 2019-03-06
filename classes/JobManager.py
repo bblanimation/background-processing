@@ -260,6 +260,9 @@ class JobManager():
         new_job_name = "{name}_{hash}{ext}".format(name=name, hash=hash, ext=ext)
         return os.path.join(self.temp_path, new_job_name)
 
+    def get_job_names(self):
+        return self.jobs
+
     def get_job_status(self, job:str):
         return self.job_statuses[job]
 
