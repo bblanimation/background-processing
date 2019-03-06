@@ -78,6 +78,8 @@ class SCENE_OT_add_job(Operator):
                     self.report({"WARNING"}, "Background process '{job_name}' timed out".format(job_name=self.job["name"]))
                 else:
                     self.report({"WARNING"}, "Background process '{job_name}' was dropped".format(job_name=self.job["name"]))
+                errormsg = self.JobManager.get_issue_string(job)
+                print(errormsg)
                 return {"CANCELLED"}
         return {"PASS_THROUGH"}
 
