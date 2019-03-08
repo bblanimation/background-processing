@@ -38,14 +38,14 @@ def splitpath(path):
             break
     return folders[::-1]
 
-def bashSafeName(string):
+def makeBashSafe(string):
     # protects against file names that would cause problems with bash calls
     if string.startswith(".") or string.startswith("-"):
         string = "_" + string[1:]
     # replaces problematic characters in shell with underscore '_'
     chars = "!#$&'()*,;<=>?[]^`{|}~: "
-    for char in list(chars):
-        string = string.replace(char, "_")
+    for char in chars:
+        string = string.replace(char, "\\" + char)
     return string
 
 linesToAddAtBeginning = [
@@ -174,7 +174,7 @@ class JobManager():
         if use_blend_file and (not os.path.exists(self.blendfile_paths[job]) or overwrite_blend):
             bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_paths[job], compress=False, copy=True)
         # insert final blend file name to top of files
-        fullPath = str(splitpath(os.path.join(self.temp_path, "{job}_data.blend".format(job=bashSafeName(job)))))
+        fullPath = str(splitpath(os.path.join(self.temp_path, "{job}_data.blend".format(job=makeBashSafe(job)))))
         sourceBlendFile = str(splitpath(bpy.data.filepath))
         # add storage path and additional passed data to lines in job file in READ mode
         lines = addLines(script, fullPath, sourceBlendFile, self.passed_data[job])
@@ -187,8 +187,8 @@ class JobManager():
     def start_job(self, job:str, debug_level:int=0):
         # send job string to background blender instance with subprocess
         attempts = 1 if job not in self.job_statuses.keys() else (self.job_statuses[job]["attempts"] + 1)
-        binary_path = bpy.app.binary_path
-        blendfile_path = self.blendfile_paths[job].replace(" ", "\\ ") if self.uses_blend_file[job] else ""
+        binary_path = makeBashSafe(bpy.app.binary_path)
+        blendfile_path = makeBashSafe(self.blendfile_paths[job]) if self.uses_blend_file[job] else ""
         temp_job_path = self.job_paths[job]
         # TODO: Choose a better exit code than 155
         thread_func = "%(binary_path)s %(blendfile_path)s -b --python-exit-code 155 -P %(temp_job_path)s" % locals()
@@ -238,20 +238,20 @@ class JobManager():
 
     def retrieve_data(self, job:str):
         # retrieve python data stored to temp directory
-        dataFilePath = os.path.join(self.temp_path, "{job}_data.py".format(job=bashSafeName(job)))
+        dataFilePath = os.path.join(self.temp_path, "{job}_data.py".format(job=makeBashSafe(job)))
         dumpedDict = open(dataFilePath, "r").readline()
         self.retrieved_data[job]["retrieved_python_data"] = json.loads(dumpedDict) if dumpedDict != "" else {}
         # retrieve blend data stored to temp directory
-        fullBlendPath = os.path.join(self.temp_path, "{job}_data.blend".format(job=bashSafeName(job)))
+        fullBlendPath = os.path.join(self.temp_path, "{job}_data.blend".format(job=makeBashSafe(job)))
         with bpy.data.libraries.load(fullBlendPath) as (data_from, data_to):
             for attr in dir(data_to):
                 setattr(data_to, attr, getattr(data_from, attr))
         self.retrieved_data[job]["retrieved_data_blocks"] = data_to
 
     def get_job_path(self, script:str, hash:str):
-        job_name = bashSafeName(os.path.basename(script))
+        job_name = makeBashSafe(os.path.basename(script))
         name, ext = os.path.splitext(job_name)
-        new_job_name = "{name}_{hash}{ext}".format(name=name, hash=bashSafeName(hash), ext=ext)
+        new_job_name = "{name}_{hash}{ext}".format(name=name, hash=makeBashSafe(hash), ext=ext)
         return os.path.join(self.temp_path, new_job_name)
 
     def get_job_names(self):
@@ -268,16 +268,19 @@ class JobManager():
 
     def get_issue_string(self, job:str):
         if not self.job_dropped(job): return ""
-        errormsg = "\n------ ISSUE WITH BACKGROUND PROCESSOR ------\n\n"
-        stderr = self.get_job_status(job)["stderr"]
-        stdout = self.get_job_status(job)["stdout"]
-        errormsg += "[stderr]\n" if len(stderr) > 0 else "[stdout]\n"
-        for line in stderr if len(stderr) > 0 else stdout:
-            if line.startswith("\r"):
-                errormsg = errormsg[:last_msg_len]
-            last_msg_len = len(errormsg)
-            errormsg += line + "\n"
-        errormsg += "\n---------------------------------------------\n"
+        if self.job_timed_out(job):
+            errormsg = "\nJob '%(job)s' timed out\n\n" % locals()
+        else:
+            errormsg = "\n------ ISSUE WITH BACKGROUND PROCESSOR ------\n\n"
+            stderr = self.get_job_status(job)["stderr"]
+            stdout = self.get_job_status(job)["stdout"]
+            errormsg += "[stderr]\n" if len(stderr) > 0 else "[stdout]\n"
+            for line in stderr if len(stderr) > 0 else stdout:
+                if line.startswith("\r"):
+                    errormsg = errormsg[:last_msg_len]
+                last_msg_len = len(errormsg)
+                errormsg += line + "\n"
+            errormsg += "\n---------------------------------------------\n"
         return errormsg
 
     def job_started(self, job:str):
