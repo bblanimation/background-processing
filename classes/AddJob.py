@@ -72,6 +72,8 @@ class SCENE_OT_add_job(Operator):
                 retrieved_python_data = self.JobManager.get_retrieved_python_data(self.job["name"])
                 print(retrieved_data_blocks.objects)
                 print(retrieved_python_data)
+                wm = context.window_manager
+                wm.event_timer_remove(self._timer)
                 return {"FINISHED"}
             if self.JobManager.job_dropped(self.job["name"]):
                 if self.JobManager.job_timed_out(self.job["name"]):
@@ -80,11 +82,15 @@ class SCENE_OT_add_job(Operator):
                     self.report({"WARNING"}, "Background process '{job_name}' was dropped".format(job_name=self.job["name"]))
                 errormsg = self.JobManager.get_issue_string(job)
                 print(errormsg)
+                wm = context.window_manager
+                wm.event_timer_remove(self._timer)
                 return {"CANCELLED"}
         return {"PASS_THROUGH"}
 
     def cancel(self, context):
         self.JobManager.kill_job(self.job["name"])
+        wm = context.window_manager
+        wm.event_timer_remove(self._timer)
 
     ################################################
     # initialization method
