@@ -19,7 +19,7 @@ bl_info = {
     "name"        : "Background Processing",
     "author"      : "Christopher Gearhart <chris@bblanimation.com>",
     "version"     : (1, 0, 0),
-    "blender"     : (2, 79, 0),
+    "blender"     : (2, 80, 0),
     "description" : "Process in the background with a separate instance of Blender",
     "location"    : "View3D > Tools > Bricker",
     "warning"     : "",  # used for warning icon and text in addons panel
@@ -27,18 +27,29 @@ bl_info = {
     "tracker_url" : "",
     "category"    : "Object"}
 
+# Blender imports
 import bpy
 from bpy.types import Scene
 
+# Addon imports
 from .classes import *
 from .ui import *
+from .functions.common import *
+
+classes = (
+    SCENE_OT_add_job,
+    VIEW3D_PT_tools_background_processing,
+)
 
 def register():
-    bpy.utils.register_class(SCENE_OT_add_job)
-    bpy.utils.register_class(BACKGROUND_PT_interface)
+    for cls in classes:
+        make_annotations(cls)
+        bpy.utils.register_class(cls)
+
     def updateMaxWorkers(self, context):
-        JobManager = JobManager.get_instance()
-        JobManager.max_workers = context.scene.backproc_max_workers
+        curJobManager = JobManager.get_instance()
+        curJobManager.max_workers = context.scene.backproc_max_workers
+
     Scene.backproc_max_workers = IntProperty(
         name="Maximum Workers",
         description="Maximum number of Blender instances to run in the background",
@@ -48,5 +59,5 @@ def register():
 
 def unregister():
     del Scene.backproc_max_workers
-    bpy.utils.unregister_class(BACKGROUND_PT_interface)
-    bpy.utils.unregister_class(SCENE_OT_add_job)
+    for cls in reversed(classes):
+        bpy.utils.unregister_class(cls)

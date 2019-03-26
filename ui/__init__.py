@@ -25,11 +25,12 @@ from bpy.types import Operator, Panel
 
 # Addon imports
 from ..classes.JobManager import *
+from ..functions.common import *
 
 
-class BACKGROUND_PT_interface(Panel):
+class VIEW3D_PT_tools_background_processing(Panel):
     bl_space_type  = "VIEW_3D"
-    bl_region_type = "TOOLS"
+    bl_region_type = "UI" if b280() else "TOOLS"
     bl_label       = "Background Processing"
     bl_idname      = "VIEW3D_PT_tools_background_processing"
     bl_context     = "objectmode"

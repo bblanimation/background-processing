@@ -16,12 +16,21 @@ for v in source_ob.data.vertices:
     mb.co = v.co
 
 scn = bpy.context.scene
-scn.objects.link(meta_obj)
+if bpy.app.version < (2,80,0):
+    scn.objects.link(meta_obj)
+else:
+    scn.collection.objects.link(meta_obj)
 scn.update()
 
-out_me = meta_obj.to_mesh(scn, apply_modifiers=True, settings='PREVIEW')
+if bpy.app.version < (2,80,0):
+    out_me = meta_obj.to_mesh(scn, apply_modifiers=True, settings='PREVIEW')
+else:
+    out_me = meta_obj.to_mesh(bpy.context.depsgraph, apply_modifiers=True)
 out_ob = bpy.data.objects.new('Volume Mesh Object', out_me)
-scn.objects.link(out_ob)
+if bpy.app.version < (2,80,0):
+    scn.objects.link(out_ob)
+else:
+    scn.collection.objects.link(out_ob)
 
 bpy.data.objects.remove(meta_obj, do_unlink=True)
 bpy.data.metaballs.remove(meta_data)
