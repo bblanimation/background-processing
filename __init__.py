@@ -42,13 +42,13 @@ classes = (
 )
 
 def register():
-    for cls in classesToRegister.classes:
+    for cls in classes:
         make_annotations(cls)
         bpy.utils.register_class(cls)
 
     def updateMaxWorkers(self, context):
-        JobManager = JobManager.get_instance()
-        JobManager.max_workers = context.scene.backproc_max_workers
+        curJobManager = JobManager.get_instance()
+        curJobManager.max_workers = context.scene.backproc_max_workers
 
     Scene.backproc_max_workers = IntProperty(
         name="Maximum Workers",
@@ -59,5 +59,5 @@ def register():
 
 def unregister():
     del Scene.backproc_max_workers
-    for cls in reversed(classesToRegister.classes):
+    for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
