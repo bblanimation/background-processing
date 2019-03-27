@@ -261,13 +261,21 @@ class JobManager():
         # overwrite existing data with loaded data of the same name
         if overwrite_data:
             for attr in dir(orig_data_names):
+                # bypass lambda function attributes
                 if attr.startswith("__"): continue
+                # get attributes to remap
                 source_attr = getattr(orig_data_names, attr)
                 target_attr = getattr(data_to, attr)
-                for i,data in enumerate(source_attr):
-                    if not hasattr(target_attr[i], "name") or target_attr[i].name == data or not hasattr(bpy.data, attr): continue
-                    target_attr[i].user_remap(getattr(bpy.data, attr).get(data))
-                    getattr(bpy.data, attr).remove(target_attr[i])
+                for i, data_name in enumerate(source_attr):
+                    # check that the data doesn't match
+                    if not hasattr(target_attr[i], "name") or target_attr[i].name == data_name or not hasattr(bpy.data, attr): continue
+                    # remap existing data to loaded data
+                    data_attr = getattr(bpy.data, attr)
+                    data_attr.get(data_name).user_remap(target_attr[i])
+                    # remove remapped existing data
+                    data_attr.remove(data_attr.get(data_name))
+                    # rename loaded data to original name
+                    target_attr[i].name = data_name
         self.retrieved_data[job]["retrieved_data_blocks"] = data_to
 
     def get_job_path(self, script:str, hash:str):
