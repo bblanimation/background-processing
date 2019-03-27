@@ -160,7 +160,7 @@ class JobManager():
     def add_job(self, job:str, script:str, passed_data:dict={}, use_blend_file:bool=True, overwrite_blend:bool=True):
         # ensure blender file is saved
         if bpy.path.basename(bpy.data.filepath) == "":
-            raise RuntimeError("'bpy.data.filepath' is empty, please save the Blender file")
+            return False, "'bpy.data.filepath' is empty, please save the Blender file"
         # cleanup the job if it already exists
         if job in self.jobs:
             self.cleanup_job(job)
@@ -172,7 +172,10 @@ class JobManager():
         self.uses_blend_file[job] = use_blend_file
         # save the active blend file to be used in Blender instance
         if use_blend_file and (not os.path.exists(self.blendfile_paths[job]) or overwrite_blend):
-            bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_paths[job], compress=False, copy=True)
+            try:
+                bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_paths[job], compress=False, copy=True)
+            except Exception as e:
+                return False, e
         # insert final blend file name to top of files
         fullPath = str(splitpath(os.path.join(self.temp_path, "%(job)s_data.blend" % locals())))
         sourceBlendFile = str(splitpath(bpy.data.filepath))
@@ -182,7 +185,7 @@ class JobManager():
         src=open(self.job_paths[job],"w")
         src.writelines(lines)
         src.close()
-        return True
+        return True, ""
 
     def start_job(self, job:str, debug_level:int=0):
         # send job string to background blender instance with subprocess

@@ -53,9 +53,9 @@ class SCENE_OT_add_job(Operator):
             self.report({"WARNING"}, "Please save the file first")
             return {"CANCELLED"}
         # NOTE: Set 'use_blend_file' to True to access data from the current blend file in script (False to execute script from default startup)
-        jobAdded = self.JobManager.add_job(self.job["name"], script=self.job["script"], use_blend_file=True, passed_data={"objName":self.obj.name, "meshName":self.obj.data.name})
+        jobAdded, msg = self.JobManager.add_job(self.job["name"], script=self.job["script"], use_blend_file=True, passed_data={"objName":self.obj.name, "meshName":self.obj.data.name})
         if not jobAdded:
-            self.report({"WARNING"}, "Job already added")
+            raise Exception(msg)
             return {"CANCELLED"}
         # create timer for modal
         wm = context.window_manager
