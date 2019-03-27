@@ -175,8 +175,9 @@ class JobManager():
         if use_blend_file and (not os.path.exists(self.blendfile_paths[job]) or overwrite_blend):
             try:
                 bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_paths[job], compress=False, copy=True)
-            except Exception as e:
-                return False, e
+            except RuntimeError as e:
+                if not str(e).startswith("Error: Unable to pack file"):
+                    return False, e
         # insert final blend file name to top of files
         fullPath = str(splitpath(os.path.join(self.temp_path, "%(job)s_data.blend" % locals())))
         sourceBlendFile = str(splitpath(bpy.data.filepath))
