@@ -77,6 +77,7 @@ linesToAddAtEnd = [
     # write python data to library in temp location 'storagePath'
     "data_file = open(storagePath.replace('.blend', '.py'), 'w')\n",
     "print(json.dumps(python_data), file=data_file)\n",
+    "data_file.close()\n"
 ]
 
 def getElapsedTime(startTime, endTime, precision:int=2):
@@ -242,7 +243,9 @@ class JobManager():
     def retrieve_data(self, job:str):
         # retrieve python data stored to temp directory
         dataFilePath = os.path.join(self.temp_path, "%(job)s_data.py" % locals())
-        dumpedDict = open(dataFilePath, "r").readline()
+        dataFile = open(dataFilePath, "r")
+        dumpedDict = dataFile.readline()
+        dataFile.close()
         self.retrieved_data[job]["retrieved_python_data"] = json.loads(dumpedDict) if dumpedDict != "" else {}
         # retrieve blend data stored to temp directory
         fullBlendPath = os.path.join(self.temp_path, "%(job)s_data.blend" % locals())
