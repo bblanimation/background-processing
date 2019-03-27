@@ -184,10 +184,7 @@ def deselectAll():
 @blender_version_wrapper('>=','2.80')
 def deselectAll():
     """ deselects all objs in scene """
-    try:
-        selected_objects = bpy.context.selected_objects
-    except AttributeError:
-        selected_objects = [obj for obj in bpy.context.view_layer.objects if obj.select_get()]
+    selected_objects = bpy.context.selected_objects if hasattr(bpy.context, "selected_objects") else [obj for obj in bpy.context.view_layer.objects if obj.select_get()]
     deselect(selected_objects)
 
 
