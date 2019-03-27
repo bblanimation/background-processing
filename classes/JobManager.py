@@ -201,7 +201,7 @@ class JobManager():
         self.retrieved_data[job] = {"retrieved_data_blocks":None, "retrieved_python_data":None}
         print("JOB STARTED:  ", job)
 
-    def process_job(self, job:str, debug_level:int=0):
+    def process_job(self, job:str, debug_level:int=0, overwrite_data=False):
         # check if job has been started
         if not self.job_started(job) or (self.job_statuses[job]["returncode"] not in (None, 0) and self.job_statuses[job]["attempts"] < self.max_attempts):
             # start job if background worker available
@@ -232,7 +232,7 @@ class JobManager():
             print("JOB CANCELLED:" if job_process.returncode != 0 else "JOB ENDED:    ", job, " (returncode:" + str(job_process.returncode) + ")" if job_process.returncode != 0 else "(time elapsed:" + getElapsedTime(job_status["start_time"], job_status["end_time"]) + ")")
             # if job was successful, retrieve any saved blend data
             if job_process.returncode == 0:
-                self.retrieve_data(job)
+                self.retrieve_data(job, overwrite_data)
 
     def process_jobs(self):
         for job in self.jobs:
@@ -240,7 +240,7 @@ class JobManager():
                 break
             self.process_job(job)
 
-    def retrieve_data(self, job:str):
+    def retrieve_data(self, job:str, overwrite_data:bool=False):
         # retrieve python data stored to temp directory
         dataFilePath = os.path.join(self.temp_path, "%(job)s_data.py" % locals())
         dataFile = open(dataFilePath, "r")
@@ -249,9 +249,25 @@ class JobManager():
         self.retrieved_data[job]["retrieved_python_data"] = json.loads(dumpedDict) if dumpedDict != "" else {}
         # retrieve blend data stored to temp directory
         fullBlendPath = os.path.join(self.temp_path, "%(job)s_data.blend" % locals())
+        orig_data_names = lambda: None
         with bpy.data.libraries.load(fullBlendPath) as (data_from, data_to):
             for attr in dir(data_to):
                 setattr(data_to, attr, getattr(data_from, attr))
+                # store copies of loaded attributes to 'orig_data_names' object
+                if overwrite_data:
+                    attrib = getattr(data_from, attr)
+                    if len(attrib) > 0:
+                        setattr(orig_data_names, attr, attrib.copy())
+        # overwrite existing data with loaded data of the same name
+        if overwrite_data:
+            for attr in dir(orig_data_names):
+                if attr.startswith("__"): continue
+                source_attr = getattr(orig_data_names, attr)
+                target_attr = getattr(data_to, attr)
+                for i,data in enumerate(source_attr):
+                    if not hasattr(target_attr[i], "name") or target_attr[i].name == data or not hasattr(bpy.data, attr): continue
+                    target_attr[i].user_remap(getattr(bpy.data, attr).get(data))
+                    getattr(bpy.data, attr).remove(target_attr[i])
         self.retrieved_data[job]["retrieved_data_blocks"] = data_to
 
     def get_job_path(self, script:str, hash:str):
