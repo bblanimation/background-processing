@@ -197,7 +197,7 @@ class JobManager():
         temp_job_path = makeBashSafe(self.job_paths[job])
         # TODO: Choose a better exit code than 155
         thread_func = "%(binary_path)s %(blendfile_path)s -b --python-exit-code 155 -P %(temp_job_path)s" % locals()
-        self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE if debug_level < 2 else None, stderr=subprocess.PIPE if debug_level in (0, 2) else None, shell=True)
+        self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE if debug_level in (0, 2) else None, stderr=subprocess.PIPE if debug_level < 2 else None, shell=True)
         self.job_statuses[job] = {"returncode":None, "stdout":None, "stderr":None, "start_time":time.time(), "end_time":None, "attempts":attempts}
         self.retrieved_data[job] = {"retrieved_data_blocks":None, "retrieved_python_data":None}
         print("JOB STARTED:  ", job)
