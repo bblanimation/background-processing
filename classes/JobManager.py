@@ -38,16 +38,6 @@ def splitpath(path):
             break
     return folders[::-1]
 
-def makeBashSafe(string):
-    # protects against file names that would cause problems with bash calls
-    if string.startswith(".") or string.startswith("-"):
-        string = "_" + string[1:]
-    # replaces problematic characters in shell with underscore '_'
-    chars = "!#$&'()*,;<=>?[]^`{|}~: "
-    for char in chars:
-        string = string.replace(char, "\\" + char)
-    return string
-
 linesToAddAtBeginning = [
     "import bpy\n",
     "import json\n",
@@ -192,11 +182,11 @@ class JobManager():
     def start_job(self, job:str, debug_level:int=0):
         # send job string to background blender instance with subprocess
         attempts = 1 if job not in self.job_statuses.keys() else (self.job_statuses[job]["attempts"] + 1)
-        binary_path = makeBashSafe(bpy.app.binary_path)
-        blendfile_path = makeBashSafe(self.blendfile_paths[job]) if self.uses_blend_file[job] else ""
-        temp_job_path = makeBashSafe(self.job_paths[job])
+        binary_path = bpy.app.binary_path
+        blendfile_path = self.blendfile_paths[job] if self.uses_blend_file[job] else ""
+        temp_job_path = self.job_paths[job]
         # TODO: Choose a better exit code than 155
-        thread_func = "%(binary_path)s %(blendfile_path)s -b --python-exit-code 155 -P %(temp_job_path)s" % locals()
+        thread_func = "'%(binary_path)s' '%(blendfile_path)s' -b --python-exit-code 155 -P '%(temp_job_path)s'" % locals()
         self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE if debug_level in (0, 2) else None, stderr=subprocess.PIPE if debug_level < 2 else None, shell=True)
         self.job_statuses[job] = {"returncode":None, "stdout":None, "stderr":None, "start_time":time.time(), "end_time":None, "attempts":attempts}
         self.retrieved_data[job] = {"retrieved_data_blocks":None, "retrieved_python_data":None}
