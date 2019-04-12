@@ -60,7 +60,8 @@ class SCENE_OT_add_job(Operator):
             return {"CANCELLED"}
         # create timer for modal
         wm = context.window_manager
-        self._timer = wm.event_timer_add(0.5, window=context.window)
+        if self._timer is None:
+            self._timer = wm.event_timer_add(0.5, window=context.window)
         wm.modal_handler_add(self)
         return{"RUNNING_MODAL"}
 
@@ -75,6 +76,7 @@ class SCENE_OT_add_job(Operator):
                 print(retrieved_python_data)
                 wm = context.window_manager
                 wm.event_timer_remove(self._timer)
+                self._timer = None
                 return {"FINISHED"}
             if self.JobManager.job_dropped(self.job["name"]):
                 if self.JobManager.job_timed_out(self.job["name"]):
@@ -85,6 +87,7 @@ class SCENE_OT_add_job(Operator):
                     print(errormsg)
                 wm = context.window_manager
                 wm.event_timer_remove(self._timer)
+                self._timer = None
                 return {"CANCELLED"}
         return {"PASS_THROUGH"}
 
@@ -92,6 +95,7 @@ class SCENE_OT_add_job(Operator):
         self.JobManager.kill_job(self.job["name"])
         wm = context.window_manager
         wm.event_timer_remove(self._timer)
+        self._timer = None
 
     ################################################
     # initialization method
@@ -107,5 +111,6 @@ class SCENE_OT_add_job(Operator):
     # class variables
 
     job_index = IntProperty(default=0)
+    timer = None
 
     ################################################
