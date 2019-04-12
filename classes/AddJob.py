@@ -53,7 +53,8 @@ class SCENE_OT_add_job(Operator):
             self.report({"WARNING"}, "Please save the file first")
             return {"CANCELLED"}
         # NOTE: Set 'use_blend_file' to True to access data from the current blend file in script (False to execute script from default startup)
-        jobAdded = self.JobManager.add_job(self.job["name"], script=self.job["script"], use_blend_file=True, passed_data={"objName":self.obj.name, "meshName":self.obj.data.name})
+        # NOTE: Job will run until it is finished or until it times out (specify timeout in seconds; 0 for infinite)
+        jobAdded = self.JobManager.add_job(self.job["name"], timeout=0, script=self.job["script"], use_blend_file=True, passed_data={"objName":self.obj.name, "meshName":self.obj.data.name})
         if not jobAdded:
             self.report({"WARNING"}, "Job already added")
             return {"CANCELLED"}
@@ -101,7 +102,6 @@ class SCENE_OT_add_job(Operator):
         self.job = {"name":os.path.basename(script) + "_" + self.obj.name, "script":script}
         self.JobManager = JobManager.get_instance(-1)
         self.JobManager.max_workers = 5
-        self.JobManager.timeout = 3
 
     ###################################################
     # class variables

@@ -133,6 +133,7 @@ class JobManager():
         self.job_processes = dict()
         self.job_statuses = dict()
         self.job_paths = dict()
+        self.job_timeouts = dict()
         self.retrieved_data = dict()
         self.stop_now = False
         self.blendfile_paths = dict()
@@ -144,7 +145,7 @@ class JobManager():
     # class variables
 
     instance = dict()
-    timeout = 0  # amount of time to wait before killing the process (0 for infinite)
+    # timeout = 0  # amount of time to wait before killing the process (0 for infinite)
     max_workers = 5  # maximum number of blender instances to run at once
     max_attempts = 1  # maximum number of times the background processor will attempt to run a job if error occurs
 
@@ -157,7 +158,7 @@ class JobManager():
             JobManager.instance[index] = JobManager()
         return JobManager.instance[index]
 
-    def add_job(self, job:str, script:str, passed_data:dict={}, use_blend_file:bool=True, overwrite_blend:bool=True):
+    def add_job(self, job:str, script:str, timeout:float=0, passed_data:dict={}, use_blend_file:bool=True, overwrite_blend:bool=True):
         # ensure blender file is saved
         if bpy.path.basename(bpy.data.filepath) == "":
             raise RuntimeError("'bpy.data.filepath' is empty, please save the Blender file")
@@ -170,6 +171,7 @@ class JobManager():
         self.blendfile_paths[job] = os.path.join(self.temp_path, bpy.path.basename(bpy.data.filepath))
         self.passed_data[job] = passed_data
         self.uses_blend_file[job] = use_blend_file
+        self.job_timeouts[job] = timeout
         # save the active blend file to be used in Blender instance
         if use_blend_file and (not os.path.exists(self.blendfile_paths[job]) or overwrite_blend):
             bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_paths[job], compress=False, copy=True)
@@ -209,7 +211,7 @@ class JobManager():
         if job_status["returncode"] is not None:
             return
         # check if job has exceeded the time limit
-        elif self.timeout > 0 and time.time() - job_status["start_time"] > self.timeout:
+        elif self.job_timeouts[job] > 0 and time.time() - job_status["start_time"] > self.job_timeouts[job]:
             self.kill_job(job)
         job_process = self.job_processes[job]
         job_process.poll()
