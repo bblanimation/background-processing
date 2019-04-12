@@ -38,16 +38,6 @@ def splitpath(path):
             break
     return folders[::-1]
 
-def makeBashSafe(string):
-    # protects against file names that would cause problems with bash calls
-    if string.startswith(".") or string.startswith("-"):
-        string = "_" + string[1:]
-    # replaces problematic characters in shell with underscore '_'
-    chars = "!#$&'()*,;<=>?[]^`{|}~: "
-    for char in chars:
-        string = string.replace(char, "\\" + char)
-    return string
-
 linesToAddAtBeginning = [
     "import bpy\n",
     "import json\n",
@@ -77,6 +67,7 @@ linesToAddAtEnd = [
     # write python data to library in temp location 'storagePath'
     "data_file = open(storagePath.replace('.blend', '.py'), 'w')\n",
     "print(json.dumps(python_data), file=data_file)\n",
+    "data_file.close()\n"
 ]
 
 def getElapsedTime(startTime, endTime, precision:int=2):
@@ -161,22 +152,26 @@ class JobManager():
     def add_job(self, job:str, script:str, timeout:float=0, passed_data:dict={}, use_blend_file:bool=True, overwrite_blend:bool=True):
         # ensure blender file is saved
         if bpy.path.basename(bpy.data.filepath) == "":
-            raise RuntimeError("'bpy.data.filepath' is empty, please save the Blender file")
+            return False, "'bpy.data.filepath' is empty, please save the Blender file"
         # cleanup the job if it already exists
         if job in self.jobs:
             self.cleanup_job(job)
         # add job to the queue
         self.jobs.append(job)
         self.job_paths[job] = self.get_job_path(script, hash=job)
-        self.blendfile_paths[job] = os.path.join(self.temp_path, bpy.path.basename(bpy.data.filepath))
+        self.blendfile_paths[job] = os.path.abspath(os.path.join(self.temp_path, bpy.path.basename(bpy.data.filepath)))
         self.passed_data[job] = passed_data
         self.uses_blend_file[job] = use_blend_file
         self.job_timeouts[job] = timeout
         # save the active blend file to be used in Blender instance
         if use_blend_file and (not os.path.exists(self.blendfile_paths[job]) or overwrite_blend):
-            bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_paths[job], compress=False, copy=True)
+            try:
+                bpy.ops.wm.save_as_mainfile(filepath=self.blendfile_paths[job], compress=False, copy=True)
+            except RuntimeError as e:
+                if not str(e).startswith("Error: Unable to pack file"):
+                    return False, e
         # insert final blend file name to top of files
-        fullPath = str(splitpath(os.path.join(self.temp_path, "{job}_data.blend".format(job=makeBashSafe(job)))))
+        fullPath = str(splitpath(os.path.join(self.temp_path, "%(job)s_data.blend" % locals())))
         sourceBlendFile = str(splitpath(bpy.data.filepath))
         # add storage path and additional passed data to lines in job file in READ mode
         lines = addLines(script, fullPath, sourceBlendFile, self.passed_data[job])
@@ -184,22 +179,22 @@ class JobManager():
         src=open(self.job_paths[job],"w")
         src.writelines(lines)
         src.close()
-        return True
+        return True, ""
 
     def start_job(self, job:str, debug_level:int=0):
         # send job string to background blender instance with subprocess
         attempts = 1 if job not in self.job_statuses.keys() else (self.job_statuses[job]["attempts"] + 1)
-        binary_path = makeBashSafe(bpy.app.binary_path)
-        blendfile_path = makeBashSafe(self.blendfile_paths[job]) if self.uses_blend_file[job] else ""
+        binary_path = bpy.app.binary_path
+        blendfile_path = self.blendfile_paths[job] if self.uses_blend_file[job] else ""
         temp_job_path = self.job_paths[job]
         # TODO: Choose a better exit code than 155
-        thread_func = "%(binary_path)s %(blendfile_path)s -b --python-exit-code 155 -P %(temp_job_path)s" % locals()
-        self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE if debug_level < 2 else None, stderr=subprocess.PIPE if debug_level in (0, 2) else None, shell=True)
+        thread_func = "'%(binary_path)s' '%(blendfile_path)s' -b --python-exit-code 155 -P '%(temp_job_path)s'" % locals()
+        self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE if debug_level in (0, 2) else None, stderr=subprocess.PIPE if debug_level < 2 else None, shell=True)
         self.job_statuses[job] = {"returncode":None, "stdout":None, "stderr":None, "start_time":time.time(), "end_time":None, "attempts":attempts}
         self.retrieved_data[job] = {"retrieved_data_blocks":None, "retrieved_python_data":None}
         print("JOB STARTED:  ", job)
 
-    def process_job(self, job:str, debug_level:int=0):
+    def process_job(self, job:str, debug_level:int=0, overwrite_data=False):
         # check if job has been started
         if not self.job_started(job) or (self.job_statuses[job]["returncode"] not in (None, 0) and self.job_statuses[job]["attempts"] < self.max_attempts):
             # start job if background worker available
@@ -230,7 +225,7 @@ class JobManager():
             print("JOB CANCELLED:" if job_process.returncode != 0 else "JOB ENDED:    ", job, " (returncode:" + str(job_process.returncode) + ")" if job_process.returncode != 0 else "(time elapsed:" + getElapsedTime(job_status["start_time"], job_status["end_time"]) + ")")
             # if job was successful, retrieve any saved blend data
             if job_process.returncode == 0:
-                self.retrieve_data(job)
+                self.retrieve_data(job, overwrite_data)
 
     def process_jobs(self):
         for job in self.jobs:
@@ -238,22 +233,48 @@ class JobManager():
                 break
             self.process_job(job)
 
-    def retrieve_data(self, job:str):
+    def retrieve_data(self, job:str, overwrite_data:bool=False):
         # retrieve python data stored to temp directory
-        dataFilePath = os.path.join(self.temp_path, "{job}_data.py".format(job=makeBashSafe(job)))
-        dumpedDict = open(dataFilePath, "r").readline()
+        dataFilePath = os.path.join(self.temp_path, "%(job)s_data.py" % locals())
+        dataFile = open(dataFilePath, "r")
+        dumpedDict = dataFile.readline()
+        dataFile.close()
         self.retrieved_data[job]["retrieved_python_data"] = json.loads(dumpedDict) if dumpedDict != "" else {}
         # retrieve blend data stored to temp directory
-        fullBlendPath = os.path.join(self.temp_path, "{job}_data.blend".format(job=makeBashSafe(job)))
+        fullBlendPath = os.path.join(self.temp_path, "%(job)s_data.blend" % locals())
+        orig_data_names = lambda: None
         with bpy.data.libraries.load(fullBlendPath) as (data_from, data_to):
             for attr in dir(data_to):
                 setattr(data_to, attr, getattr(data_from, attr))
+                # store copies of loaded attributes to 'orig_data_names' object
+                if overwrite_data:
+                    attrib = getattr(data_from, attr)
+                    if len(attrib) > 0:
+                        setattr(orig_data_names, attr, attrib.copy())
+        # overwrite existing data with loaded data of the same name
+        if overwrite_data:
+            for attr in dir(orig_data_names):
+                # bypass lambda function attributes
+                if attr.startswith("__"): continue
+                # get attributes to remap
+                source_attr = getattr(orig_data_names, attr)
+                target_attr = getattr(data_to, attr)
+                for i, data_name in enumerate(source_attr):
+                    # check that the data doesn't match
+                    if not hasattr(target_attr[i], "name") or target_attr[i].name == data_name or not hasattr(bpy.data, attr): continue
+                    # remap existing data to loaded data
+                    data_attr = getattr(bpy.data, attr)
+                    data_attr.get(data_name).user_remap(target_attr[i])
+                    # remove remapped existing data
+                    data_attr.remove(data_attr.get(data_name))
+                    # rename loaded data to original name
+                    target_attr[i].name = data_name
         self.retrieved_data[job]["retrieved_data_blocks"] = data_to
 
     def get_job_path(self, script:str, hash:str):
-        job_name = makeBashSafe(os.path.basename(script))
+        job_name = os.path.basename(script)
         name, ext = os.path.splitext(job_name)
-        new_job_name = "{name}_{hash}{ext}".format(name=name, hash=makeBashSafe(hash), ext=ext)
+        new_job_name = "{name}_{hash}{ext}".format(name=name, hash=hash, ext=ext)
         return os.path.join(self.temp_path, new_job_name)
 
     def get_job_names(self):
