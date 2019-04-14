@@ -17,3 +17,4 @@
 
 from .AddJob import *
 from .JobManager import *
+from .KillJob import *

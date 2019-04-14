@@ -35,7 +35,7 @@ scripts = [
 
 class SCENE_OT_add_job(Operator):
     """ Adds a job """
-    bl_idname = "scene.add_job"
+    bl_idname = "backproc.add_job"
     bl_label = "Add Job"
     bl_description = "Adds a job"
     bl_options = {'REGISTER'}
@@ -54,7 +54,7 @@ class SCENE_OT_add_job(Operator):
             return {"CANCELLED"}
         # NOTE: Set 'use_blend_file' to True to access data from the current blend file in script (False to execute script from default startup)
         # NOTE: Job will run until it is finished or until it times out (specify timeout in seconds; 0 for infinite)
-        jobAdded, msg = self.JobManager.add_job(self.job["name"], timeout=0, script=self.job["script"], use_blend_file=True, passed_data={"objName":self.obj.name, "meshName":self.obj.data.name})
+        jobAdded, msg = self.JobManager.add_job(self.job["name"], timeout=3, script=self.job["script"], use_blend_file=True, passed_data={"objName":self.obj.name, "meshName":self.obj.data.name})
         if not jobAdded:
             raise Exception(msg)
             return {"CANCELLED"}
@@ -81,8 +81,10 @@ class SCENE_OT_add_job(Operator):
             if self.JobManager.job_dropped(self.job["name"]):
                 if self.JobManager.job_timed_out(self.job["name"]):
                     self.report({"WARNING"}, "Background process '{job_name}' timed out".format(job_name=self.job["name"]))
+                elif self.JobManager.job_killed(self.job["name"]):
+                    self.report({"WARNING"}, "Background process '{job_name}' was killed".format(job_name=self.job["name"]))
                 else:
-                    self.report({"WARNING"}, "Background process '{job_name}' was dropped".format(job_name=self.job["name"]))
+                    self.report({"WARNING"}, "Background process '{job_name}' failed".format(job_name=self.job["name"]))
                     errormsg = self.JobManager.get_issue_string(self.job["name"])
                     print(errormsg)
                 wm = context.window_manager
@@ -111,6 +113,6 @@ class SCENE_OT_add_job(Operator):
     # class variables
 
     job_index = IntProperty(default=0)
-    timer = None
+    _timer = None
 
     ################################################

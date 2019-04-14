@@ -163,6 +163,7 @@ class JobManager():
         self.passed_data[job] = passed_data
         self.uses_blend_file[job] = use_blend_file
         self.job_timeouts[job] = timeout
+        self.job_statuses[job] = {"started":False, "returncode":None, "stdout":None, "stderr":None, "start_time":time.time(), "end_time":None, "attempts":0, "timed_out":False}
         # save the active blend file to be used in Blender instance
         if use_blend_file and (not os.path.exists(self.blendfile_paths[job]) or overwrite_blend):
             try:
@@ -183,14 +184,14 @@ class JobManager():
 
     def start_job(self, job:str, debug_level:int=0):
         # send job string to background blender instance with subprocess
-        attempts = 1 if job not in self.job_statuses.keys() else (self.job_statuses[job]["attempts"] + 1)
         binary_path = bpy.app.binary_path
         blendfile_path = self.blendfile_paths[job] if self.uses_blend_file[job] else ""
         temp_job_path = self.job_paths[job]
         # TODO: Choose a better exit code than 155
         thread_func = "'%(binary_path)s' '%(blendfile_path)s' -b --python-exit-code 155 -P '%(temp_job_path)s'" % locals()
         self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE if debug_level in (0, 2) else None, stderr=subprocess.PIPE if debug_level < 2 else None, shell=True)
-        self.job_statuses[job] = {"returncode":None, "stdout":None, "stderr":None, "start_time":time.time(), "end_time":None, "attempts":attempts}
+        self.job_statuses[job]["started"] = True
+        self.job_statuses[job]["attempts"] += 1
         self.retrieved_data[job] = {"retrieved_data_blocks":None, "retrieved_python_data":None}
         print("JOB STARTED:  ", job)
 
@@ -208,6 +209,7 @@ class JobManager():
         # check if job has exceeded the time limit
         elif self.job_timeouts[job] > 0 and time.time() - job_status["start_time"] > self.job_timeouts[job]:
             self.kill_job(job)
+            self.job_statuses[job]["timed_out"] = True
         job_process = self.job_processes[job]
         job_process.poll()
         # check if job process still running
@@ -280,8 +282,27 @@ class JobManager():
     def get_job_names(self):
         return self.jobs
 
+    def get_queued_job_names(self):
+        return [job for job in self.jobs if not self.job_started(job)]
+
+    def get_active_job_names(self):
+        return [job for job in self.jobs if self.job_started(job) and not (self.job_complete(job) or self.job_dropped(job))]
+
+    def get_completed_job_names(self):
+        return [job for job in self.jobs if self.job_complete(job)]
+
+    def get_dropped_job_names(self):
+        return [job for job in self.jobs if self.job_dropped(job)]
+
     def get_job_status(self, job:str):
-        return self.job_statuses[job]
+        if not self.job_started(job):
+            return "QUEUED"
+        elif self.job_complete(job):
+            return "COMPLETED"
+        elif self.job_dropped(job):
+            return "DROPPED"
+        else:
+            return "ACTIVE"
 
     def get_retrieved_python_data(self, job:str):
         return self.retrieved_data[job]["retrieved_python_data"]
@@ -295,8 +316,8 @@ class JobManager():
             errormsg = "\nJob '%(job)s' timed out\n\n" % locals()
         else:
             errormsg = "\n------ ISSUE WITH BACKGROUND PROCESSOR ------\n\n"
-            stderr = self.get_job_status(job)["stderr"]
-            stdout = self.get_job_status(job)["stdout"]
+            stderr = self.job_statuses[job]["stderr"]
+            stdout = self.job_statuses[job]["stdout"]
             errormsg += "[stderr]\n" if len(stderr) > 0 else "[stdout]\n"
             for line in stderr if len(stderr) > 0 else stdout:
                 if line.startswith("\r"):
@@ -307,16 +328,23 @@ class JobManager():
         return errormsg
 
     def job_started(self, job:str):
-        return job in self.job_statuses.keys()
+        return self.job_statuses[job]["started"]
 
     def job_complete(self, job:str):
-        return job in self.job_statuses and self.job_statuses[job]["returncode"] == 0
+        """ returns True if job was completed successfully (return code 0) """
+        return self.job_statuses[job]["returncode"] == 0
 
     def job_dropped(self, job:str):
-        return job in self.job_statuses and self.job_statuses[job]["attempts"] == self.max_attempts and self.job_statuses[job]["returncode"] not in (None, 0)
+        """ returns True if job was killed, timed out, or encountered an error """
+        return self.job_statuses[job]["attempts"] == self.max_attempts and self.job_statuses[job]["returncode"] not in (None, 0)
+
+    def job_killed(self, job:str):
+        """ returns True if job was killed or timed out """
+        return self.job_statuses[job]["returncode"] == -9
 
     def job_timed_out(self, job:str):
-        return job in self.job_statuses and self.job_statuses[job]["attempts"] == self.max_attempts and self.job_statuses[job]["returncode"] == -9
+        """ returns True if job timed out """
+        return self.job_statuses[job]["timed_out"] and self.job_statuses[job]["attempts"] == self.max_attempts
 
     def jobs_complete(self):
         for job in self.jobs:
@@ -332,6 +360,7 @@ class JobManager():
             self.cleanup_job(job)
 
     def cleanup_job(self, job):
+        """ removes job from all JobManager data structures """
         assert job in self.jobs
         self.jobs.remove(job)
         del self.passed_data[job]
@@ -353,9 +382,9 @@ class JobManager():
         return len(self.job_processes)
 
     def num_completed_jobs(self):
-        return [self.job_complete(job) for job in self.jobs].count(True)
+        return self.get_completed_job_names().count(True)
 
     def num_dropped_jobs(self):
-        return [self.job_dropped(job) for job in self.jobs].count(True)
+        return self.get_dropped_job_names().count(True)
 
     ###################################################
