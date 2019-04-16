@@ -21,6 +21,8 @@ import subprocess
 import time
 import json
 import sys
+import tempfile
+import platform
 
 # Blender imports
 import bpy
@@ -117,7 +119,8 @@ class JobManager():
     def __init__(self):
         scn = bpy.context.scene
         # initialize vars
-        self.temp_path = os.path.abspath(os.path.join(*[os.path.abspath(os.sep), "tmp", "background_processing"]))
+        tempdir = '/tmp' if platform.system() == 'Darwin' else tempfile.gettempdir()
+        self.temp_path = os.path.abspath(os.path.join(*[tempdir, "background_processing"]))
         self.jobs = list()
         self.passed_data = dict()
         self.uses_blend_file = dict()
@@ -188,7 +191,10 @@ class JobManager():
         blendfile_path = self.blendfile_paths[job] if self.uses_blend_file[job] else ""
         temp_job_path = self.job_paths[job]
         # TODO: Choose a better exit code than 155
-        thread_func = "'%(binary_path)s' '%(blendfile_path)s' -b --python-exit-code 155 -P '%(temp_job_path)s'" % locals()
+        if platform.system() == 'Darwin':
+            thread_func = "'%(binary_path)s' '%(blendfile_path)s' -b --python-exit-code 155 -P '%(temp_job_path)s'" % locals()
+        else:
+            thread_func = [binary_path, blendfile_path, "--background", "--python-exit-code", "155", "--python", temp_job_path]
         self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE if debug_level in (0, 2) else None, stderr=subprocess.PIPE if debug_level < 2 else None, shell=True)
         self.job_statuses[job]["started"] = True
         self.job_statuses[job]["attempts"] += 1
