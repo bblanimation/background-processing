@@ -21,7 +21,6 @@ import subprocess
 import time
 import json
 import sys
-import tempfile
 import platform
 
 # Blender imports
@@ -42,8 +41,7 @@ class JobManager():
     def __init__(self):
         scn = bpy.context.scene
         # initialize vars
-        tempdir = '/tmp' if platform.system() == 'Darwin' else tempfile.gettempdir()
-        self.temp_path = os.path.abspath(os.path.join(*[tempdir, "background_processing"]))
+        self.temp_path = os.path.abspath(os.path.join(temp_path(), "background_processing"))
         self.jobs = list()
         self.passed_data = dict()
         self.uses_blend_file = dict()

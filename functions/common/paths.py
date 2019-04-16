@@ -17,6 +17,7 @@
 
 # System imports
 import os
+import tempfile
 
 # Blender imports
 # NONE!
@@ -35,8 +36,13 @@ def makeBashSafe(s:str):
 
 
 def root_path():
-    """ get root system directory """
+    """ get system root directory """
     return os.path.abspath(os.sep)
+
+
+def temp_path():
+    """ get system temp directory """
+    return  '/tmp' if platform.system() == 'Darwin' else tempfile.gettempdir()
 
 
 def splitpath(path:str):
