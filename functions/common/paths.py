@@ -18,6 +18,7 @@
 # System imports
 import os
 import tempfile
+import platform
 
 # Blender imports
 # NONE!
