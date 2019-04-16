@@ -6,7 +6,7 @@ Run blender processes in the background with separate instances of Blender.
 
 # Instructions for Use:
 
-* First, copy the `JobManager.py` file from the `background_processing/classes/` directory to your addon module
+* First, add the background processor as a submodule to your addon module
 * Write your own background processing scripts
     * Background processing scripts will be executed from within a separate Blender instance
         * This allows for Blender-only module imports such as bpy and bmesh
