@@ -38,7 +38,9 @@ from .functions.common import *
 
 classes = (
     SCENE_OT_add_job,
-    VIEW3D_PT_tools_background_processing,
+    SCENE_OT_kill_job,
+    VIEW3D_PT_background_processing_tests,
+    VIEW3D_PT_background_processing_info,
 )
 
 def register():
@@ -57,7 +59,24 @@ def register():
         update=updateMaxWorkers,
         default=5)
 
+    Scene.backproc_manager_index = IntProperty(
+        name="JobManager Index",
+        description="Index for the desired JobManager instance",
+        default=-1)
+
+    Scene.backproc_job_type = EnumProperty(
+        name="Job Type",
+        description="Show info for jobs with this status",
+        items=(("ALL", "All", ""),
+               ("QUEUED", "Queued", ""),
+               ("ACTIVE", "Active", ""),
+               ("COMPLETED", "Completed", ""),
+               ("DROPPED", "Dropped", ""),),
+        default="ACTIVE")
+
 def unregister():
+    del Scene.backproc_job_type
+    del Scene.backproc_manager_index
     del Scene.backproc_max_workers
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)

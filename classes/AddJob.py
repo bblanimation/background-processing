@@ -35,7 +35,7 @@ scripts = [
 
 class SCENE_OT_add_job(Operator):
     """ Adds a job """
-    bl_idname = "scene.add_job"
+    bl_idname = "backproc.add_job"
     bl_label = "Add Job"
     bl_description = "Adds a job"
     bl_options = {'REGISTER'}
@@ -53,13 +53,15 @@ class SCENE_OT_add_job(Operator):
             self.report({"WARNING"}, "Please save the file first")
             return {"CANCELLED"}
         # NOTE: Set 'use_blend_file' to True to access data from the current blend file in script (False to execute script from default startup)
-        jobAdded, msg = self.JobManager.add_job(self.job["name"], script=self.job["script"], use_blend_file=True, passed_data={"objName":self.obj.name, "meshName":self.obj.data.name})
+        # NOTE: Job will run until it is finished or until it times out (specify timeout in seconds; 0 for infinite)
+        jobAdded, msg = self.JobManager.add_job(self.job["name"], timeout=3, script=self.job["script"], use_blend_file=True, passed_data={"objName":self.obj.name, "meshName":self.obj.data.name})
         if not jobAdded:
             raise Exception(msg)
             return {"CANCELLED"}
         # create timer for modal
         wm = context.window_manager
-        self._timer = wm.event_timer_add(0.5, window=context.window)
+        if self._timer is None:
+            self._timer = wm.event_timer_add(0.5, window=context.window)
         wm.modal_handler_add(self)
         return{"RUNNING_MODAL"}
 
@@ -74,16 +76,20 @@ class SCENE_OT_add_job(Operator):
                 print(retrieved_python_data)
                 wm = context.window_manager
                 wm.event_timer_remove(self._timer)
+                self._timer = None
                 return {"FINISHED"}
             if self.JobManager.job_dropped(self.job["name"]):
                 if self.JobManager.job_timed_out(self.job["name"]):
                     self.report({"WARNING"}, "Background process '{job_name}' timed out".format(job_name=self.job["name"]))
+                elif self.JobManager.job_killed(self.job["name"]):
+                    self.report({"WARNING"}, "Background process '{job_name}' was killed".format(job_name=self.job["name"]))
                 else:
-                    self.report({"WARNING"}, "Background process '{job_name}' was dropped".format(job_name=self.job["name"]))
+                    self.report({"WARNING"}, "Background process '{job_name}' failed".format(job_name=self.job["name"]))
                     errormsg = self.JobManager.get_issue_string(self.job["name"])
                     print(errormsg)
                 wm = context.window_manager
                 wm.event_timer_remove(self._timer)
+                self._timer = None
                 return {"CANCELLED"}
         return {"PASS_THROUGH"}
 
@@ -91,6 +97,7 @@ class SCENE_OT_add_job(Operator):
         self.JobManager.kill_job(self.job["name"])
         wm = context.window_manager
         wm.event_timer_remove(self._timer)
+        self._timer = None
 
     ################################################
     # initialization method
@@ -101,11 +108,11 @@ class SCENE_OT_add_job(Operator):
         self.job = {"name":os.path.basename(script) + "_" + self.obj.name, "script":script}
         self.JobManager = JobManager.get_instance(-1)
         self.JobManager.max_workers = 5
-        self.JobManager.timeout = 3
 
     ###################################################
     # class variables
 
     job_index = IntProperty(default=0)
+    _timer = None
 
     ################################################
