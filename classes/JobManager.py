@@ -112,7 +112,7 @@ class JobManager():
         blendfile_path = self.blendfile_paths[job] if self.uses_blend_file[job] else ""
         temp_job_path = self.job_paths[job]
         # TODO: Choose a better exit code than 155
-        if platform.system() == 'Darwin':
+        if platform.system() in ('Darwin', 'Linux'):
             thread_func = "'%(binary_path)s' '%(blendfile_path)s' -b --python-exit-code 155 -P '%(temp_job_path)s'" % locals()
         else:
             thread_func = [binary_path, blendfile_path, "--background", "--python-exit-code", "155", "--python", temp_job_path]
