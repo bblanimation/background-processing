@@ -151,10 +151,15 @@ class JobManager():
             stderr_lines = tuple() if job_process.stderr is None else job_process.stderr.readlines()
             job_status["stdout"] = [line.decode("ASCII")[:-1] for line in stdout_lines]
             job_status["stderr"] = [line.decode("ASCII")[:-1] for line in stderr_lines]
-            print("JOB CANCELLED:" if job_process.returncode != 0 else "JOB ENDED:    ", job, " (returncode:" + str(job_process.returncode) + ")" if job_process.returncode != 0 else "(time elapsed:" + getElapsedTime(job_status["start_time"], job_status["end_time"]) + ")")
             # if job was successful, retrieve any saved blend data
-            if job_process.returncode == 0:
-                self.retrieve_data(job, overwrite_data)
+            if job_status["returncode"] == 0:
+                try:
+                    self.retrieve_data(job, overwrite_data)
+                except FileNotFoundError as e:
+                    job_status["returncode"] = -42
+                    job_status["stderr"] = ["EXCEPTION (<class 'FileNotFoundError'>): No data file found by 'retrieve_data()' function", "", str(e)]
+            # print status of job
+            print("JOB CANCELLED:" if job_status["returncode"] != 0 else "JOB ENDED:    ", job, " (returncode:" + str(job_status["returncode"]) + ")" if job_status["returncode"] != 0 else "(time elapsed:" + getElapsedTime(job_status["start_time"], job_status["end_time"]) + ")")
 
     def process_jobs(self):
         for job in self.jobs:
@@ -303,7 +308,7 @@ class JobManager():
         return self.max_workers - len(self.job_processes)
 
     def num_pending_jobs(self):
-        return len(self.jobs) - len(self.job_statuses)
+        return len([status for status in self.job_statuses.values() if not status["started"]])
 
     def num_running_jobs(self):
         return len(self.job_processes)
