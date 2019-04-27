@@ -24,15 +24,14 @@ import platform
 # NONE!
 
 
-def makeBashSafe(s:str):
+def makeBashSafe(s:str, replace_with:str=None, unsafe_chars:str="!#$&'()*,;<=>?[]^`{|}~: "):
     """ make filenames and paths bash safe """
     # protects against file names that would cause problems with bash calls
     if s.startswith(".") or s.startswith("-"):
         s= "_" + s[1:]
-    # protects problematic bash characters with backslash
-    chars = "!#$&'()*,;<=>?[]^`{|}~: "
-    for char in chars:
-        s = s.replace(char, "\\" + char)
+    # protects problematic bash characters with backslash (or replaces them if 'replace_with' is a string)
+    for char in unsafe_chars:
+        s = s.replace(char, ("\\" + char) if type(replace_with) != str else replace_with)
     return s
 
 
