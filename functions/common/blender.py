@@ -33,6 +33,7 @@ except ImportError:
 # Module imports
 from .python_utils import confirmIter, confirmList
 from .wrappers import blender_version_wrapper
+from .reporting import b280
 
 
 #################### PREFERENCES ####################
@@ -96,16 +97,10 @@ def duplicate(obj:Object, linked:bool=False, link_to_scene:bool=False):
 
 @blender_version_wrapper('<=','2.79')
 def setActiveObj(obj:Object, scene:Scene=None):
-    if obj is None:
-        return
-    assert type(obj) == Object
     scene = scene or bpy.context.scene
     scene.objects.active = obj
 @blender_version_wrapper('>=','2.80')
 def setActiveObj(obj:Object, view_layer:ViewLayer=None):
-    if obj is None:
-        return
-    assert type(obj) == Object
     view_layer = view_layer or bpy.context.view_layer
     view_layer.objects.active = obj
 
@@ -313,9 +308,17 @@ def insertKeyframes(objs, keyframeType:str, frame:int, if_needed:bool=False):
         inserted = obj.keyframe_insert(data_path=keyframeType, frame=frame, options=options)
 
 
-def apply_modifiers(obj:Object, settings:str="PREVIEW"):
+@blender_version_wrapper("<=", "2.79")
+def new_mesh_from_object(obj:Object):
+    return bpy.data.meshes.new_from_object(bpy.context.scene, obj, apply_modifiers=True, settings="PREVIEW")
+@blender_version_wrapper(">=", "2.80")
+def new_mesh_from_object(obj:Object):
+    return bpy.data.meshes.new_from_object(obj)
+
+
+def apply_modifiers(obj:Object):
     """ apply modifiers to object """
-    m = obj.to_mesh(bpy.context.scene, True, "PREVIEW")
+    m = new_mesh_from_object(obj)
     obj.modifiers.clear()
     obj.data = m
 
@@ -448,6 +451,14 @@ def smoothMeshFaces(faces:iter):
 
 
 #################### OTHER ####################
+
+
+@blender_version_wrapper('<=','2.79')
+def update_depsgraph():
+    bpy.context.scene.update()
+@blender_version_wrapper('>=','2.80')
+def update_depsgraph():
+    bpy.context.view_layer.depsgraph.update()
 
 
 def getItemByID(collection:bpy.types.CollectionProperty, id:int):
