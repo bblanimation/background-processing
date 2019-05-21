@@ -1,3 +1,4 @@
+# This script creates a new square in the source object data and sends it back
 import bpy
 import bmesh
 import time

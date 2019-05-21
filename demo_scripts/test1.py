@@ -1,3 +1,4 @@
+# This script applies a remesh modifier
 import bpy
 import time
 

@@ -1,3 +1,4 @@
+# This script bloats the source object with meta balls
 import bpy
 import bmesh
 import time
@@ -29,10 +30,6 @@ if bpy.app.version >= (2,80,0):
 else:
     out_me = meta_obj.to_mesh(scn, apply_modifiers=True, settings='PREVIEW')
 out_ob = bpy.data.objects.new('Volume Mesh Object', out_me)
-if bpy.app.version < (2,80,0):
-    scn.objects.link(out_ob)
-else:
-    scn.collection.objects.link(out_ob)
 
 bpy.data.objects.remove(meta_obj, do_unlink=True)
 bpy.data.metaballs.remove(meta_data)

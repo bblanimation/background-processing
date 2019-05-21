@@ -110,10 +110,10 @@ class JobManager():
     def start_job(self, job:str, debug_level:int=0):
         # send job string to background blender instance with subprocess
         binary_path = bpy.app.binary_path
-        blendfile_path = self.blendfile_paths[job] if self.uses_blend_file[job] else ""
+        blendfile_path = "'" + self.blendfile_paths[job] + "'" if self.uses_blend_file[job] else ""
         temp_job_path = self.job_paths[job]
         # TODO: Choose a better exit code than 155
-        thread_func = "'%(binary_path)s' '%(blendfile_path)s' -b --python-exit-code 155 -P '%(temp_job_path)s'" % locals()
+        thread_func = "'%(binary_path)s' %(blendfile_path)s -b --python-exit-code 155 -P '%(temp_job_path)s'" % locals()
         if platform.system() not in ("Darwin", "Linux"):
             thread_func = shlex.split(thread_func)
         self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE if debug_level in (0, 2) and platform.system() in ("Darwin", "Linux") else None, stderr=subprocess.PIPE if debug_level < 2 and platform.system() in ("Darwin", "Linux") else None, shell=True)
