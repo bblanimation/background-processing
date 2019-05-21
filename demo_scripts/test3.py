@@ -5,16 +5,19 @@ import time
 
 # NOTE: If 'use_blend_file' property enabled in 'add_job' call, reference blend data from source file directly.
 # NOTE: Else, pull objects and meshes from source file using 'appendFrom(data_type:str, data_name:str)'.
-appendFrom("Object", objName)
+append_from("Object", objName)
 source_ob = bpy.data.objects.get(objName)
 
 meta_data = bpy.data.metaballs.new('Volume Data')
 meta_obj = bpy.data.objects.new('Volume Object', meta_data)
 
-for v in source_ob.data.vertices:
+for i,v in enumerate(source_ob.data.vertices):
     mb = meta_data.elements.new(type='BALL')
     mb.radius = 1.5
     mb.co = v.co
+    time.sleep(1)
+    progress = (i+1) / len(source_ob.data.vertices)
+    update_job_progress(progress)
 
 scn = bpy.context.scene
 if bpy.app.version < (2,80,0):
@@ -26,7 +29,7 @@ else:
 
 
 if bpy.app.version >= (2,80,0):
-    out_me = bpy.data.meshes.new_from_obj(meta_obj)
+    out_me = bpy.data.meshes.new_from_object(meta_obj)
 else:
     out_me = meta_obj.to_mesh(scn, apply_modifiers=True, settings='PREVIEW')
 out_ob = bpy.data.objects.new('Volume Mesh Object', out_me)

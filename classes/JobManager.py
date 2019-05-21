@@ -88,7 +88,7 @@ class JobManager():
         self.passed_data[job] = passed_data
         self.uses_blend_file[job] = use_blend_file
         self.job_timeouts[job] = timeout
-        self.job_statuses[job] = {"started":False, "returncode":None, "stdout":None, "stderr":None, "start_time":time.time(), "end_time":None, "attempts":0, "timed_out":False}
+        self.job_statuses[job] = {"started":False, "returncode":None, "stdout":None, "stderr":None, "start_time":time.time(), "end_time":None, "attempts":0, "progress":0.0, "timed_out":False}
         # save the active blend file to be used in Blender instance
         if use_blend_file and (not os.path.exists(self.blendfile_paths[job]) or overwrite_blend):
             try:
@@ -97,10 +97,16 @@ class JobManager():
                 if not str(e).startswith("Error: Unable to pack file"):
                     return False, e
         # insert final blend file name to top of files
-        fullPath = str(splitpath(os.path.join(self.temp_path, "%(job)s_data.blend" % locals())))
-        sourceBlendFile = str(splitpath(bpy.data.filepath))
+        targetPathBase = os.path.join(self.temp_path, job)
+        # clear old files if they exist
+        progress_file_path = targetPathBase + "_progress.py"
+        blend_data_file_path = targetPathBase + "_data.blend"
+        python_data_file_path = targetPathBase + "_data.py"
+        for f in (progress_file_path, blend_data_file_path, python_data_file_path):
+            if os.path.isfile(f):
+                os.remove(f)
         # add storage path and additional passed data to lines in job file in READ mode
-        lines = addLines(script, fullPath, sourceBlendFile, self.passed_data[job])
+        lines = addLines(script, targetPathBase, self.passed_data[job])
         # write text to job file in WRITE mode
         src=open(self.job_paths[job],"w")
         src.writelines(lines)
@@ -141,7 +147,7 @@ class JobManager():
         job_process.poll()
         # check if job process still running
         if job_process.returncode is None:
-            return
+            self.update_job_progress(job)
         else:
             self.job_processes.pop(job)
             # record status of completed job process
@@ -166,6 +172,14 @@ class JobManager():
             if self.jobs_complete():
                 break
             self.process_job(job)
+
+    def update_job_progress(self, job:str):
+        progressFilePath = os.path.join(self.temp_path, "%(job)s_progress.py" % locals())
+        if not os.path.exists(progressFilePath): return
+        progressFile = open(progressFilePath, "r")
+        progress = progressFile.readline()
+        progressFile.close()
+        self.job_statuses[job]["progress"] = float(progress)
 
     def retrieve_data(self, job:str, overwrite_data:bool=False):
         # retrieve python data stored to temp directory
@@ -226,7 +240,7 @@ class JobManager():
     def get_dropped_job_names(self):
         return [job for job in self.jobs if self.job_dropped(job)]
 
-    def get_job_status(self, job:str):
+    def get_job_state(self, job:str):
         if not self.job_started(job):
             return "QUEUED"
         elif self.job_complete(job):
@@ -235,6 +249,9 @@ class JobManager():
             return "DROPPED"
         else:
             return "ACTIVE"
+
+    def get_job_progress(self, job:str):
+        return self.job_statuses[job]["progress"]
 
     def get_retrieved_python_data(self, job:str):
         return self.retrieved_data[job]["retrieved_python_data"]

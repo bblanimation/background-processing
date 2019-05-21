@@ -58,7 +58,8 @@ class VIEW3D_PT_background_processing_info(Panel):
         row = col.row(align=True)
         row.prop(scn, "backproc_job_type")
 
-        col = layout.column(align=True)
+        box = layout.box()
+        col = box.column(align=True)
         col.scale_y = 0.7
         row = col.row(align=True)
         row.label(text="Pending Jobs: " + str(manager.num_pending_jobs()))
@@ -71,6 +72,7 @@ class VIEW3D_PT_background_processing_info(Panel):
         row = col.row(align=True)
         row.label(text="Available Workers: " + str(manager.num_available_workers()))
 
+        # get job names to list out
         if scn.backproc_job_type == "QUEUED":
             jobs = manager.get_queued_job_names()
         elif scn.backproc_job_type == "ACTIVE":
@@ -81,6 +83,8 @@ class VIEW3D_PT_background_processing_info(Panel):
             jobs = manager.get_dropped_job_names()
         else:
             jobs = manager.get_job_names()
+
+        # print jobs to panel
         col = layout.column(align=True)
         i = 0
         for job in sorted(jobs):
@@ -88,13 +92,13 @@ class VIEW3D_PT_background_processing_info(Panel):
             row = col.row(align=True)
             row.label(text="%(i)s) %(job)s" % locals())
             row = col.row(align=True)
-            job_status = manager.get_job_status(job)
-            if job_status == "ACTIVE":
+            job_state = manager.get_job_state(job)
+            if job_state == "ACTIVE":
                 split = layout_split(row, factor=0.85)
                 col1 = split.column(align=True)
-                col1.label(text="Status: " + job_status.capitalize())
+                col1.label(text="Status: " + job_state.capitalize() + " (" + str(manager.get_job_progress(job)*100) + "%)")
                 col1 = split.column(align=True)
                 col1.operator("backproc.kill_job", text="", icon="CANCEL").job_name = job
             else:
-                row.label(text="Status: " + job_status.capitalize())
+                row.label(text="Status: " + job_state.capitalize())
             layout.separator()
