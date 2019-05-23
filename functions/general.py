@@ -33,7 +33,7 @@ linesToAddAtBeginning = [
     "data_blocks = list()\n",
     "python_data = list()\n",
     "print(targetPathBase + '_progress.py')\n",
-    # define functions to be used in background_processing scripts
+    # functions to be used in background_processing scripts
     "def append_from(typ, filename):\n",
     "    directory = os.path.join(sourceBlendFile, typ)\n",
     "    filepath = os.path.join(directory, filename)\n",
@@ -42,6 +42,7 @@ linesToAddAtBeginning = [
     "        filename=filename,\n",
     "        directory=directory)\n",
     "def update_job_progress(percent_complete):\n",
+    "    assert type(percent_complete) in (int, float)\n"
     "    progress_file = open(targetPathBase + '_progress.py', 'w')\n",
     "    print(percent_complete, file=progress_file, end='')\n",
     "    progress_file.close()\n",

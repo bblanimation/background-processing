@@ -11,6 +11,17 @@ Run blender processes in the background with separate instances of Blender.
     * Background processing scripts will be executed from within a separate Blender instance
         * This allows for Blender-only module imports such as bpy and bmesh
         * This also allows for access to the source file's blend data (if no existing blend data must be accessed, consider setting `use_blend_file` to False in `JobManager.add_job` API call for efficiency)
+    * Background processing scripts can report their progress with `update_job_progress` function
+        * `update_job_progress` takes one float argument from 0.0 to 1.0
+        * use `update_job_progress` calls judiciously, as the function has a file write cost
+    * Background processing scripts can access the source file's blend data in two ways
+        * Set `use_blend_file` to `True` in `JobManager.add_job` API call (may prove costly for large blend files)
+        * Append blend data individually using the `append_from` function
+            * `append_from` has two parameters
+                * Parameter 1: data type string (https://docs.blender.org/manual/en/dev/data_system/data_blocks.html#data-block-types)
+                * Parameter 2: name of the data block
+                * e.g. `append_from('Objects', 'Cube')`
+            * Send blend data names from active Blender session to your background scripts via the `passed_data` argument in `JobManager.add_job` API call
     * Background processing scripts should include a `python_data` variable
         * `python_data` variable should be set to dictionary containing any necessary data to retrieve
         * these data blocks can then be accessed with the `JobManager.get_retrieved_python_data` API call upon job completion.
