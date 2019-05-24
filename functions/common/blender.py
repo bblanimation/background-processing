@@ -138,14 +138,14 @@ def selectAll():
     select(bpy.context.scene.objects)
 
 
-def selectVerts(vertList, only:bool=False):
-    """ selects verts in list and deselects the rest """
+def selectGeom(geom, only:bool=False):
+    """ selects verts/edges/faces in list and deselects the rest """
     # confirm vertList is a list of vertices
-    vertList = confirmList(vertList)
+    geom = confirmList(geom)
     # deselect all if selection is exclusive
     if only: deselectAll()
     # select vertices in list
-    for v in vertList:
+    for v in geom:
         if v is not None and not v.select:
             v.select = True
 
@@ -313,7 +313,9 @@ def new_mesh_from_object(obj:Object):
     return bpy.data.meshes.new_from_object(bpy.context.scene, obj, apply_modifiers=True, settings="PREVIEW")
 @blender_version_wrapper(">=", "2.80")
 def new_mesh_from_object(obj:Object):
-    return bpy.data.meshes.new_from_object(obj)
+    depsgraph = bpy.context.view_layer.depsgraph
+    obj_eval = depsgraph.objects.get(obj.name, None)
+    return bpy.data.meshes.new_from_object(obj_eval)
 
 
 def apply_modifiers(obj:Object):
