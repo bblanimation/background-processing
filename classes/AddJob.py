@@ -54,7 +54,7 @@ class SCENE_OT_add_job(Operator):
             return {"CANCELLED"}
         # NOTE: Set 'use_blend_file' to True to access data from the current blend file in script (False to execute script from default startup)
         # NOTE: Job will run until it is finished or until it times out (specify timeout in seconds; 0 for infinite)
-        jobAdded, msg = self.JobManager.add_job(self.job["name"], timeout=3, script=self.job["script"], use_blend_file=True, passed_data={"objName":self.obj.name, "meshName":self.obj.data.name})
+        jobAdded, msg = self.JobManager.add_job(self.job["name"], timeout=30, script=self.job["script"], use_blend_file=False, passed_data={"objName":self.obj.name, "meshName":self.obj.data.name})
         if not jobAdded:
             raise Exception(msg)
             return {"CANCELLED"}
@@ -67,7 +67,7 @@ class SCENE_OT_add_job(Operator):
 
     def modal(self, context, event):
         if event.type == "TIMER":
-            self.JobManager.process_job(self.job["name"], debug_level=0)
+            self.JobManager.process_job(self.job["name"], debug_level=3)
             if self.JobManager.job_complete(self.job["name"]):
                 self.report({"INFO"}, "Background process '{job_name}' was finished".format(job_name=self.job["name"]))
                 retrieved_data_blocks = self.JobManager.get_retrieved_data_blocks(self.job["name"])
@@ -77,8 +77,9 @@ class SCENE_OT_add_job(Operator):
                 wm = context.window_manager
                 wm.event_timer_remove(self._timer)
                 self._timer = None
+                tag_redraw_areas()
                 return {"FINISHED"}
-            if self.JobManager.job_dropped(self.job["name"]):
+            elif self.JobManager.job_dropped(self.job["name"]):
                 if self.JobManager.job_timed_out(self.job["name"]):
                     self.report({"WARNING"}, "Background process '{job_name}' timed out".format(job_name=self.job["name"]))
                 elif self.JobManager.job_killed(self.job["name"]):
@@ -90,7 +91,10 @@ class SCENE_OT_add_job(Operator):
                 wm = context.window_manager
                 wm.event_timer_remove(self._timer)
                 self._timer = None
+                tag_redraw_areas()
                 return {"CANCELLED"}
+            else:
+                tag_redraw_areas()
         return {"PASS_THROUGH"}
 
     def cancel(self, context):

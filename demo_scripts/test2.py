@@ -1,10 +1,11 @@
+# This script creates a new square in the source object data and sends it back
 import bpy
 import bmesh
 import time
 
 # NOTE: If 'use_blend_file' property enabled in 'add_job' call, reference blend data from source file directly.
-# NOTE: Else, pull objects and meshes from source file using 'appendFrom(data_type:str, data_name:str)'.
-appendFrom("Mesh", meshName)
+# NOTE: Else, pull objects and meshes from source file using 'append_from(data_type:str, data_name:str)'.
+append_from("Mesh", meshName)
 mesh = bpy.data.meshes.get(meshName)
 bm = bmesh.new()
 bm.from_mesh(mesh)

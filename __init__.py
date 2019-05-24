@@ -72,7 +72,7 @@ def register():
                ("ACTIVE", "Active", ""),
                ("COMPLETED", "Completed", ""),
                ("DROPPED", "Dropped", ""),),
-        default="ACTIVE")
+        default="ALL")
 
 def unregister():
     del Scene.backproc_job_type
