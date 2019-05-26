@@ -32,7 +32,6 @@ linesToAddAtBeginning = [
     # initialize variables
     "data_blocks = list()\n",
     "python_data = list()\n",
-    "print(targetPathBase + '_progress.py')\n",
     # functions to be used in background_processing scripts
     "def append_from(typ, filename):\n",
     "    directory = os.path.join(sourceBlendFile, typ)\n",

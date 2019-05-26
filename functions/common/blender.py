@@ -325,6 +325,15 @@ def apply_modifiers(obj:Object):
     obj.data = m
 
 
+@blender_version_wrapper('<=','2.79')
+def light_add(type:str='POINT', radius:float=1.0, align:str='WORLD', location:tuple=(0.0, 0.0, 0.0), rotation:tuple=(0.0, 0.0, 0.0)):
+    view_align = align != 'WORLD'
+    bpy.ops.object.lamp_add(type=type, radius=radius, view_align=view_align, location=location, rotation=rotation)
+@blender_version_wrapper('>=','2.80')
+def light_add(type:str='POINT', radius:float=1.0, align:str='WORLD', location:tuple=(0.0, 0.0, 0.0), rotation:tuple=(0.0, 0.0, 0.0)):
+    bpy.ops.object.light_add(type=type, radius=radius, align=align, location=location, rotation=rotation)
+
+
 def is_smoke(ob:Object):
     """ check if object is smoke domain """
     if ob is None:
