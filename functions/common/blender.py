@@ -314,7 +314,7 @@ def new_mesh_from_object(obj:Object):
 @blender_version_wrapper(">=", "2.80")
 def new_mesh_from_object(obj:Object):
     depsgraph = bpy.context.view_layer.depsgraph
-    obj_eval = depsgraph.objects.get(obj.name, None)
+    obj_eval = obj.evaluated_get(depsgraph)
     return bpy.data.meshes.new_from_object(obj_eval)
 
 
