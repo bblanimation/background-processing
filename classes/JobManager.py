@@ -187,7 +187,7 @@ class JobManager():
         dataFile = open(dataFilePath, "r")
         dumpedDict = dataFile.readline()
         dataFile.close()
-        self.retrieved_data[job]["retrieved_python_data"] = json.loads(dumpedDict) if dumpedDict != "" else {}
+        self.retrieved_data[job]["retrieved_python_data"] = marshal.loads(bytes.fromhex(dumpedDict)) if dumpedDict != "" else {}
         # retrieve blend data stored to temp directory
         fullBlendPath = os.path.join(self.temp_path, "%(job)s_data.blend" % locals())
         orig_data_names = lambda: None

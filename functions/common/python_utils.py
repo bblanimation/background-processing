@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # System imports
-import json
+import marshal
 import itertools
 import operator
 import hashlib
@@ -152,9 +152,9 @@ def str_to_bool(s:str):
 
 
 def deepcopy(object):
-    """ efficient way to deepcopy json loadable object """
-    jsonObj = json.dumps(object)
-    newObj = json.loads(jsonObj)
+    """ efficient way to deepcopy marshal loadable object """
+    marshalObj = marshal.dumps(object)
+    newObj = marshal.loads(marshalObj)
     return newObj
 
 

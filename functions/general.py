@@ -22,7 +22,7 @@ from .common import *
 linesToAddAtBeginning = [
     # python imports
     "import bpy\n",
-    "import json\n",
+    "import marshal\n",
     # remove default objects & meshes
     # "if bpy.data.filepath == '':\n",
     # "    for obj in bpy.data.objects:\n",
@@ -54,7 +54,7 @@ linesToAddAtEnd = [
     "bpy.data.libraries.write(targetPathBase + '_data.blend', set(data_blocks), fake_user=True)\n",
     # write python data to library in temp location
     "data_file = open(targetPathBase + '_data.py', 'w')\n",
-    "print(json.dumps(python_data), file=data_file, end='')\n",
+    "print(marshal.dumps(python_data).hex(), file=data_file, end='')\n",
     "data_file.close()\n"
 ]
 
