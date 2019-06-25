@@ -336,9 +336,9 @@ class JobManager():
         return len(self.job_processes)
 
     def num_completed_jobs(self):
-        return self.get_completed_job_names().count(True)
+        return len(self.get_completed_job_names())
 
     def num_dropped_jobs(self):
-        return self.get_dropped_job_names().count(True)
+        return len(self.get_dropped_job_names())
 
     ###################################################

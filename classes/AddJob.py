@@ -112,7 +112,7 @@ class SCENE_OT_add_job(Operator):
         script = scripts[self.job_index]
         self.job = {"name":os.path.basename(script) + "_" + self.obj.name, "script":script}
         self.JobManager = JobManager.get_instance(-1)
-        self.JobManager.max_workers = 5
+        self.JobManager.max_workers = bpy.context.scene.backproc_max_workers
 
     ###################################################
     # class variables

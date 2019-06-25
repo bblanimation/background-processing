@@ -22,7 +22,6 @@ update_job_progress(0.01)
 
 for i in range(100):
     time.sleep(0.05)
-    print(i)
     update_job_progress((i + 2) / 100)
 
 # set 'data_blocks' equal to dictionary of python data to be sent back to the Blender host
