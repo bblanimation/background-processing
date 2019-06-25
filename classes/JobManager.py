@@ -179,6 +179,7 @@ class JobManager():
         progressFile = open(progressFilePath, "r")
         progress = progressFile.readline()
         progressFile.close()
+        if progress == "": return
         self.job_statuses[job]["progress"] = float(progress)
 
     def retrieve_data(self, job:str, overwrite_data:bool=False):
@@ -302,7 +303,11 @@ class JobManager():
         return True
 
     def kill_job(self, job:str):
-        self.job_processes[job].kill()
+        p = self.job_processes[job]
+        if platform.system() == "Windows":
+            subprocess.call(['taskkill', '/F', '/T', '/PID', str(self.job_processes[job].pid)])
+        else:
+            self.job_processes[job].kill()
 
     def kill_all(self):
         for job in self.jobs.copy():

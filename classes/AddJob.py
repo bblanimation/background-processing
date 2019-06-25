@@ -54,7 +54,7 @@ class SCENE_OT_add_job(Operator):
             return {"CANCELLED"}
         # NOTE: Set 'use_blend_file' to True to access data from the current blend file in script (False to execute script from default startup)
         # NOTE: Job will run until it is finished or until it times out (specify timeout in seconds; 0 for infinite)
-        jobAdded, msg = self.JobManager.add_job(self.job["name"], timeout=30, script=self.job["script"], use_blend_file=False, passed_data={"objName":self.obj.name, "meshName":self.obj.data.name})
+        jobAdded, msg = self.JobManager.add_job(self.job["name"], timeout=17.5, script=self.job["script"], use_blend_file=False, passed_data={"objName":self.obj.name, "meshName":self.obj.data.name})
         if not jobAdded:
             raise Exception(msg)
             return {"CANCELLED"}
@@ -99,6 +99,7 @@ class SCENE_OT_add_job(Operator):
 
     def cancel(self, context):
         self.JobManager.kill_job(self.job["name"])
+        print(self.job["name"])
         wm = context.window_manager
         wm.event_timer_remove(self._timer)
         self._timer = None

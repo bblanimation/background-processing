@@ -21,7 +21,7 @@ for i,v in enumerate(source_ob.data.vertices):
     progress = (i+1) / len(source_ob.data.vertices)
     if progress - last_progress > 0.1:
         update_job_progress(progress)
-        last_progress = round(progress, 1)
+        last_progress = progress
 
 scn = bpy.context.scene
 if bpy.app.version < (2,80,0):
