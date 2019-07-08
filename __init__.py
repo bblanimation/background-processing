@@ -49,7 +49,7 @@ def register():
         bpy.utils.register_class(cls)
 
     def updateMaxWorkers(self, context):
-        curJobManager = JobManager.get_instance()
+        curJobManager = JobManager.get_instance(-1)
         curJobManager.max_workers = context.scene.backproc_max_workers
 
     Scene.backproc_max_workers = IntProperty(
