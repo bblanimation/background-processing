@@ -38,7 +38,7 @@ class SCENE_OT_add_job(Operator):
     bl_idname = "backproc.add_job"
     bl_label = "Add Job"
     bl_description = "Adds a job"
-    bl_options = {'REGISTER'}
+    bl_options = {"REGISTER"}
 
     ################################################
     # Blender Operator methods
