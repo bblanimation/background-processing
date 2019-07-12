@@ -19,7 +19,7 @@
 from .common import *
 
 
-linesToAddAtBeginning = [
+lines_to_add_at_beginning = [
     # python imports
     "import bpy\n",
     "import marshal\n",
@@ -34,7 +34,7 @@ linesToAddAtBeginning = [
     "python_data = list()\n",
     # functions to be used in background_processing scripts
     "def append_from(typ, filename):\n",
-    "    directory = os.path.join(sourceBlendFile, typ)\n",
+    "    directory = os.path.join(source_blend_file, typ)\n",
     "    filepath = os.path.join(directory, filename)\n",
     "    bpy.ops.wm.append(\n",
     "        filepath=filepath,\n",
@@ -42,60 +42,60 @@ linesToAddAtBeginning = [
     "        directory=directory)\n",
     "def update_job_progress(percent_complete):\n",
     "    assert type(percent_complete) in (int, float)\n"
-    "    progress_file = open(targetPathBase + '_progress.py', 'w')\n",
+    "    progress_file = open(target_path_base + '_progress.py', 'w')\n",
     "    print(percent_complete, file=progress_file, end='')\n",
     "    progress_file.close()\n",
     "### DO NOT EDIT ABOVE THESE LINES\n\n\n",
 ]
-linesToAddAtEnd = [
+lines_to_add_at_end = [
     "\n\n### DO NOT EDIT BELOW THESE LINES\n",
     "assert None not in data_blocks  # ensures that all data from data_blocks exists\n",
     # write Blender data blocks to library in temp location
-    "bpy.data.libraries.write(targetPathBase + '_data.blend', set(data_blocks), fake_user=True)\n",
+    "bpy.data.libraries.write(target_path_base + '_data.blend', set(data_blocks), fake_user=True)\n",
     # write python data to library in temp location
-    "data_file = open(targetPathBase + '_data.py', 'w')\n",
+    "data_file = open(target_path_base + '_data.py', 'w')\n",
     "print(marshal.dumps(python_data).hex(), file=data_file, end='')\n",
     "data_file.close()\n"
 ]
 
 
-def addLines(script, targetPathBase, passed_data):
+def add_lines(script, target_path_base, passed_data):
     # get paths
-    sourceBlendFile = str(splitpath(bpy.data.filepath))
-    targetPathBaseSplit =str(splitpath(targetPathBase))
+    source_blend_file = str(splitpath(bpy.data.filepath))
+    target_path_base_split =str(splitpath(target_path_base))
     # write lines to script file
     src=open(script,"r")
     oline=src.readlines()
-    for line in linesToAddAtBeginning[::-1]:
+    for line in lines_to_add_at_beginning[::-1]:
         oline.insert(0, line)
-    oline.insert(0, "targetPathBase = os.path.join(*%(targetPathBaseSplit)s)\n" % locals())
-    oline.insert(0, "sourceBlendFile = os.path.join(*%(sourceBlendFile)s)\n" % locals())
+    oline.insert(0, "target_path_base = os.path.join(*%(target_path_base_split)s)\n" % locals())
+    oline.insert(0, "source_blend_file = os.path.join(*%(source_blend_file)s)\n" % locals())
     oline.insert(0, "import os\n" % locals())
     for key in passed_data:
         value = passed_data[key]
         value_str = str(value) if type(value) != str else "'%(value)s'" % locals()
         oline.insert(0, "%(key)s = %(value_str)s\n" % locals())
-    for line in linesToAddAtEnd:
+    for line in lines_to_add_at_end:
         oline.append(line)
     src.close()
     return oline
 
 
-def getElapsedTime(startTime, endTime, precision:int=2):
-    """From seconds to Days;Hours:Minutes;Seconds"""
-    value = endTime-startTime
+def get_elapsed_time(start_time, end_time, precision:int=2):
+    """ from seconds to Days;Hours:Minutes;Seconds """
+    value = end_time - start_time
 
-    valueD = (((value/365)/24)/60)
-    Days = int(valueD)
+    d_value = (((value / 365) / 24) / 60)
+    days = int(valueD)
 
-    valueH = (valueD-Days)*365
-    Hours = int(valueH)
+    h_value = (d_value - days) * 365
+    hours = int(h_value)
 
-    valueM = (valueH - Hours)*24
-    Minutes = int(valueM)
+    m_value = (h_value - hours) * 24
+    minutes = int(m_value)
 
-    valueS = (valueM - Minutes)*60
-    Seconds = round(valueS, precision)
+    s_value = (m_value - minutes) * 60
+    seconds = round(s_value, precision)
 
-    outputString = str(Days) + ";" + str(Hours) + ":" + str(Minutes) + ";" + str(Seconds)
-    return outputString
+    output_string = str(days) + ";" + str(hours) + ":" + str(minutes) + ";" + str(seconds)
+    return output_string

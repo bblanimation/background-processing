@@ -23,7 +23,7 @@ import bpy
 from bpy.types import Operator
 
 # Addon imports
-from .JobManager import *
+from .job_manager import *
 
 demo_scripts_path = join(dirname(dirname(abspath(__file__))), "demo_scripts")
 scripts = [
@@ -54,8 +54,8 @@ class SCENE_OT_add_job(Operator):
             return {"CANCELLED"}
         # NOTE: Set 'use_blend_file' to True to access data from the current blend file in script (False to execute script from default startup)
         # NOTE: Job will run until it is finished or until it times out (specify timeout in seconds; 0 for infinite)
-        jobAdded, msg = self.JobManager.add_job(self.job["name"], timeout=30, script=self.job["script"], use_blend_file=False, passed_data={"objName":self.obj.name, "meshName":self.obj.data.name})
-        if not jobAdded:
+        job_added, msg = self.job_manager.add_job(self.job["name"], timeout=30, script=self.job["script"], use_blend_file=False, passed_data={"objName":self.obj.name, "mesh_name":self.obj.data.name})
+        if not job_added:
             raise Exception(msg)
             return {"CANCELLED"}
         # create timer for modal
@@ -67,11 +67,11 @@ class SCENE_OT_add_job(Operator):
 
     def modal(self, context, event):
         if event.type == "TIMER":
-            self.JobManager.process_job(self.job["name"], debug_level=3)
-            if self.JobManager.job_complete(self.job["name"]):
+            self.job_manager.process_job(self.job["name"], debug_level=3)
+            if self.job_manager.job_complete(self.job["name"]):
                 self.report({"INFO"}, "Background process '{job_name}' was finished".format(job_name=self.job["name"]))
-                retrieved_data_blocks = self.JobManager.get_retrieved_data_blocks(self.job["name"])
-                retrieved_python_data = self.JobManager.get_retrieved_python_data(self.job["name"])
+                retrieved_data_blocks = self.job_manager.get_retrieved_data_blocks(self.job["name"])
+                retrieved_python_data = self.job_manager.get_retrieved_python_data(self.job["name"])
                 print(retrieved_data_blocks.objects)
                 print(retrieved_python_data)
                 wm = context.window_manager
@@ -79,14 +79,14 @@ class SCENE_OT_add_job(Operator):
                 self._timer = None
                 tag_redraw_areas()
                 return {"FINISHED"}
-            elif self.JobManager.job_dropped(self.job["name"]):
-                if self.JobManager.job_timed_out(self.job["name"]):
+            elif self.job_manager.job_dropped(self.job["name"]):
+                if self.job_manager.job_timed_out(self.job["name"]):
                     self.report({"WARNING"}, "Background process '{job_name}' timed out".format(job_name=self.job["name"]))
-                elif self.JobManager.job_killed(self.job["name"]):
+                elif self.job_manager.job_killed(self.job["name"]):
                     self.report({"WARNING"}, "Background process '{job_name}' was killed".format(job_name=self.job["name"]))
                 else:
                     self.report({"WARNING"}, "Background process '{job_name}' failed".format(job_name=self.job["name"]))
-                    errormsg = self.JobManager.get_issue_string(self.job["name"])
+                    errormsg = self.job_manager.get_issue_string(self.job["name"])
                     print(errormsg)
                 wm = context.window_manager
                 wm.event_timer_remove(self._timer)
@@ -98,7 +98,7 @@ class SCENE_OT_add_job(Operator):
         return {"PASS_THROUGH"}
 
     def cancel(self, context):
-        self.JobManager.kill_job(self.job["name"])
+        self.job_manager.kill_job(self.job["name"])
         wm = context.window_manager
         wm.event_timer_remove(self._timer)
         self._timer = None
@@ -110,8 +110,8 @@ class SCENE_OT_add_job(Operator):
         self.obj = bpy.context.object
         script = scripts[self.job_index]
         self.job = {"name":os.path.basename(script) + "_" + self.obj.name, "script":script}
-        self.JobManager = JobManager.get_instance(-1)
-        self.JobManager.max_workers = 5
+        self.job_manager = JobManager.get_instance(-1)
+        self.job_manager.max_workers = 5
 
     ###################################################
     # class variables

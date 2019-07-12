@@ -15,6 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from .AddJob import *
-from .JobManager import *
-from .KillJob import *
+from .add_job import *
+from .job_manager import *
+from .kill_job import *

@@ -24,7 +24,7 @@ import bpy
 from bpy.types import Operator, Panel
 
 # Addon imports
-from ..classes.JobManager import *
+from ..classes.job_manager import *
 from ..functions.common import *
 
 

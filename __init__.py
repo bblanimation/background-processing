@@ -48,15 +48,15 @@ def register():
         make_annotations(cls)
         bpy.utils.register_class(cls)
 
-    def updateMaxWorkers(self, context):
-        curJobManager = JobManager.get_instance()
-        curJobManager.max_workers = context.scene.backproc_max_workers
+    def update_max_workers(self, context):
+        job_manager = JobManager.get_instance()
+        job_manager.max_workers = context.scene.backproc_max_workers
 
     Scene.backproc_max_workers = IntProperty(
         name="Maximum Workers",
         description="Maximum number of Blender instances to run in the background",
         min=0, max=100,
-        update=updateMaxWorkers,
+        update=update_max_workers,
         default=5)
 
     Scene.backproc_manager_index = IntProperty(

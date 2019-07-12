@@ -23,7 +23,7 @@ import bpy
 from bpy.types import Operator
 
 # Addon imports
-from .JobManager import *
+from .job_manager import *
 
 
 class SCENE_OT_kill_job(Operator):
@@ -42,17 +42,17 @@ class SCENE_OT_kill_job(Operator):
     #     return bpy.context.object is not None
 
     def execute(self, context):
-        if self.job_name not in self.JobManager.get_active_job_names():
+        if self.job_name not in self.job_manager.get_active_job_names():
             return {"CANCELLED"}
-        self.JobManager.kill_job(self.job_name)
+        self.job_manager.kill_job(self.job_name)
         return {"FINISHED"}
 
     ################################################
     # initialization method
 
     def __init__(self):
-        self.JobManager = JobManager.get_instance(-1)
-        self.JobManager.max_workers = 5
+        self.job_manager = JobManager.get_instance(-1)
+        self.job_manager.max_workers = 5
 
     ###################################################
     # class variables

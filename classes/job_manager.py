@@ -97,16 +97,16 @@ class JobManager():
                 if not str(e).startswith("Error: Unable to pack file"):
                     return False, e
         # insert final blend file name to top of files
-        targetPathBase = os.path.join(self.temp_path, job)
+        target_path_base = os.path.join(self.temp_path, job)
         # clear old files if they exist
-        progress_file_path = targetPathBase + "_progress.py"
-        blend_data_file_path = targetPathBase + "_data.blend"
-        python_data_file_path = targetPathBase + "_data.py"
+        progress_file_path = target_path_base + "_progress.py"
+        blend_data_file_path = target_path_base + "_data.blend"
+        python_data_file_path = target_path_base + "_data.py"
         for f in (progress_file_path, blend_data_file_path, python_data_file_path):
             if os.path.isfile(f):
                 os.remove(f)
         # add storage path and additional passed data to lines in job file in READ mode
-        lines = addLines(script, targetPathBase, self.passed_data[job])
+        lines = add_lines(script, target_path_base, self.passed_data[job])
         # write text to job file in WRITE mode
         src=open(self.job_paths[job],"w")
         src.writelines(lines)
@@ -165,7 +165,7 @@ class JobManager():
                     job_status["returncode"] = -42
                     job_status["stderr"] = ["EXCEPTION (<class 'FileNotFoundError'>): No data file found by 'retrieve_data()' function", "", str(e)]
             # print status of job
-            print("JOB CANCELLED:" if job_status["returncode"] != 0 else "JOB ENDED:    ", job, " (returncode:" + str(job_status["returncode"]) + ")" if job_status["returncode"] != 0 else "(time elapsed:" + getElapsedTime(job_status["start_time"], job_status["end_time"]) + ")")
+            print("JOB CANCELLED:" if job_status["returncode"] != 0 else "JOB ENDED:    ", job, " (returncode:" + str(job_status["returncode"]) + ")" if job_status["returncode"] != 0 else "(time elapsed:" + get_elapsed_time(job_status["start_time"], job_status["end_time"]) + ")")
 
     def process_jobs(self):
         for job in self.jobs:
@@ -174,24 +174,24 @@ class JobManager():
             self.process_job(job)
 
     def update_job_progress(self, job:str):
-        progressFilePath = os.path.join(self.temp_path, "%(job)s_progress.py" % locals())
-        if not os.path.exists(progressFilePath): return
-        progressFile = open(progressFilePath, "r")
-        progress = progressFile.readline()
-        progressFile.close()
+        progress_file_path = os.path.join(self.temp_path, "%(job)s_progress.py" % locals())
+        if not os.path.exists(progress_file_path): return
+        progress_file = open(progress_file_path, "r")
+        progress = progress_file.readline()
+        progress_file.close()
         self.job_statuses[job]["progress"] = float(progress)
 
     def retrieve_data(self, job:str, overwrite_data:bool=False):
         # retrieve python data stored to temp directory
-        dataFilePath = os.path.join(self.temp_path, "%(job)s_data.py" % locals())
-        dataFile = open(dataFilePath, "r")
-        dumpedDict = dataFile.readline()
-        dataFile.close()
-        self.retrieved_data[job]["retrieved_python_data"] = marshal.loads(bytes.fromhex(dumpedDict)) if dumpedDict != "" else {}
+        data_file_path = os.path.join(self.temp_path, "%(job)s_data.py" % locals())
+        data_file = open(data_file_path, "r")
+        dumped_dict = data_file.readline()
+        data_file.close()
+        self.retrieved_data[job]["retrieved_python_data"] = marshal.loads(bytes.fromhex(dumped_dict)) if dumped_dict != "" else {}
         # retrieve blend data stored to temp directory
-        fullBlendPath = os.path.join(self.temp_path, "%(job)s_data.blend" % locals())
+        full_blend_path = os.path.join(self.temp_path, "%(job)s_data.blend" % locals())
         orig_data_names = lambda: None
-        with bpy.data.libraries.load(fullBlendPath) as (data_from, data_to):
+        with bpy.data.libraries.load(full_blend_path) as (data_from, data_to):
             for attr in dir(data_to):
                 setattr(data_to, attr, getattr(data_from, attr))
                 # store copies of loaded attributes to 'orig_data_names' object
