@@ -119,7 +119,7 @@ def select(objList, active:bool=False, only:bool=False):
     if only:
         deselect_all()
     # select objects in list
-    for obj in objList:
+    for obj in obj_list:
         if obj is not None and not obj.select:
             obj.select = True
     # set active object
@@ -134,7 +134,7 @@ def select(objList, active:bool=False, only:bool=False):
     if only:
         deselect_all()
     # select objects in list
-    for obj in objList:
+    for obj in obj_list:
         if obj is not None and not obj.select_get():
             obj.select_set(True)
     # set active object
@@ -165,7 +165,7 @@ def deselect(objList):
     # confirm objList is a list of objects
     objList = confirm_list(objList)
     # select/deselect objects in list
-    for obj in objList:
+    for obj in obj_list:
         if obj is not None and obj.select:
             obj.select = False
 @blender_version_wrapper(">=","2.80")
@@ -174,7 +174,7 @@ def deselect(objList):
     # confirm objList is a list of objects
     objList = confirm_list(objList)
     # select/deselect objects in list
-    for obj in objList:
+    for obj in obj_list:
         if obj is not None and obj.select_get():
             obj.select_set(False)
 
@@ -315,7 +315,7 @@ def insert_keyframes(objs, keyframeType:str, frame:int, if_needed:bool=False):
     objs = confirm_iter(objs)
     options = set(["INSERTKEY_NEEDED"] if if_needed else [])
     for obj in objs:
-        inserted = obj.keyframe_insert(data_path=keyframeType, frame=frame, options=options)
+        inserted = obj.keyframe_insert(data_path=keyframe_type, frame=frame, options=options)
 
 
 @blender_version_wrapper("<=", "2.79")

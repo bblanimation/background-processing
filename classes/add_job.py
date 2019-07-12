@@ -38,7 +38,7 @@ class SCENE_OT_add_job(Operator):
     bl_idname = "backproc.add_job"
     bl_label = "Add Job"
     bl_description = "Adds a job"
-    bl_options = {'REGISTER'}
+    bl_options = {"REGISTER"}
 
     ################################################
     # Blender Operator methods
@@ -54,7 +54,7 @@ class SCENE_OT_add_job(Operator):
             return {"CANCELLED"}
         # NOTE: Set 'use_blend_file' to True to access data from the current blend file in script (False to execute script from default startup)
         # NOTE: Job will run until it is finished or until it times out (specify timeout in seconds; 0 for infinite)
-        job_added, msg = self.job_manager.add_job(self.job["name"], timeout=30, script=self.job["script"], use_blend_file=False, passed_data={"objName":self.obj.name, "mesh_name":self.obj.data.name})
+        job_added, msg = self.job_manager.add_job(self.job["name"], timeout=17.5, script=self.job["script"], use_blend_file=False, passed_data={"objName":self.obj.name, "mesh_name":self.obj.data.name})
         if not job_added:
             raise Exception(msg)
             return {"CANCELLED"}
@@ -99,6 +99,7 @@ class SCENE_OT_add_job(Operator):
 
     def cancel(self, context):
         self.job_manager.kill_job(self.job["name"])
+        self.JobManager.kill_job(self.job["name"])
         wm = context.window_manager
         wm.event_timer_remove(self._timer)
         self._timer = None
@@ -111,7 +112,7 @@ class SCENE_OT_add_job(Operator):
         script = scripts[self.job_index]
         self.job = {"name":os.path.basename(script) + "_" + self.obj.name, "script":script}
         self.job_manager = JobManager.get_instance(-1)
-        self.job_manager.max_workers = 5
+        self.JobManager.max_workers = bpy.context.scene.backproc_max_workers
 
     ###################################################
     # class variables

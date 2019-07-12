@@ -63,12 +63,20 @@ def vec_abs(v1:Vector):
 
 def vec_conv(v1, innerType:type=int, outerType:type=Vector):
     """ convert type of items in iterable """
-    return outerType([innerType(x) for x in v1])
+    return outerType([innerType(e1) for e1 in v1])
 
 
-def vec_round(v1:Vector, precision:int=0):
-    """ round items in vector """
-    return Vector(round(e1, precision) for e1 in v1)
+def vector_round(v1:Vector, precision:int=0, round_type="ROUND"):
+    """ round items in Vector """
+    if round_type == "ROUND":
+        lst = [round(e1, precision) for e1 in v1]
+    elif round_type == "FLOOR":
+        prec = 10**precision
+        lst = [(math.floor(e1 * prec)) / prec for e1 in v1]
+    elif round_type in ("CEILING", "CEIL"):
+        prec = 10**precision
+        lst = [(math.ceil(e1 * prec)) / prec for e1 in v1]
+    return Vector(lst)
 
 
 def mean(lst:list):

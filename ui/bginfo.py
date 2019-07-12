@@ -96,7 +96,7 @@ class VIEW3D_PT_background_processing_info(Panel):
             if job_state == "ACTIVE":
                 split = layout_split(row, factor=0.85)
                 col1 = split.column(align=True)
-                col1.label(text="Status: " + job_state.capitalize() + " (" + str(manager.get_job_progress(job)*100) + "%)")
+                col1.label(text="Status: " + job_state.capitalize() + " (" + str(round(manager.get_job_progress(job) * 100, 1)) + "%)")
                 col1 = split.column(align=True)
                 col1.operator("backproc.kill_job", text="", icon="CANCEL").job_name = job
             else:

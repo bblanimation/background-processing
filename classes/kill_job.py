@@ -31,7 +31,7 @@ class SCENE_OT_kill_job(Operator):
     bl_idname = "backproc.kill_job"
     bl_label = "Kill Job"
     bl_description = "Kills a job"
-    bl_options = {'REGISTER'}
+    bl_options = {"REGISTER"}
 
     ################################################
     # Blender Operator methods
