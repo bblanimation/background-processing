@@ -34,7 +34,7 @@ def stopwatch(text:str, start_time:float, end_time:float=None, precision:int=5, 
     value = value * multiplier
 
     d_value = (((value / 365) / 24) / 60)
-    days = int(valueD)
+    days = int(d_value)
 
     h_value = (d_value - days) * 365
     hours = int(h_value)

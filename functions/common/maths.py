@@ -16,7 +16,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # System imports
-# NONE!
+import math
 
 # Blender imports
 from mathutils import Matrix, Vector
@@ -66,7 +66,7 @@ def vec_conv(v1, innerType:type=int, outerType:type=Vector):
     return outerType([innerType(e1) for e1 in v1])
 
 
-def vector_round(v1:Vector, precision:int=0, round_type="ROUND"):
+def vec_round(v1:Vector, precision:int=0, round_type="ROUND"):
     """ round items in Vector """
     if round_type == "ROUND":
         lst = [round(e1, precision) for e1 in v1]

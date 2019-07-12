@@ -24,7 +24,7 @@ from math import *
 import bpy
 import bmesh
 from mathutils import Vector, Euler, Matrix
-from bpy.types import Object, Scene, CollectionProperty
+from bpy.types import Object, Scene
 try:
     from bpy.types import ViewLayer
 except ImportError:
@@ -111,10 +111,10 @@ def set_active_obj(obj:Object, view_layer:ViewLayer=None):
 
 
 @blender_version_wrapper("<=","2.79")
-def select(objList, active:bool=False, only:bool=False):
+def select(obj_list, active:bool=False, only:bool=False):
     """ selects objs in list (deselects the rest if 'only') """
-    # confirm objList is a list of objects
-    objList = confirm_iter(objList)
+    # confirm obj_list is a list of objects
+    obj_list = confirm_iter(obj_list)
     # deselect all if selection is exclusive
     if only:
         deselect_all()
@@ -124,12 +124,12 @@ def select(objList, active:bool=False, only:bool=False):
             obj.select = True
     # set active object
     if active:
-        set_active_obj(objList[0])
+        set_active_obj(obj_list[0])
 @blender_version_wrapper(">=","2.80")
-def select(objList, active:bool=False, only:bool=False):
+def select(obj_list, active:bool=False, only:bool=False):
     """ selects objs in list (deselects the rest if 'only') """
-    # confirm objList is a list of objects
-    objList = confirm_iter(objList)
+    # confirm obj_list is a list of objects
+    obj_list = confirm_iter(obj_list)
     # deselect all if selection is exclusive
     if only:
         deselect_all()
@@ -139,7 +139,7 @@ def select(objList, active:bool=False, only:bool=False):
             obj.select_set(True)
     # set active object
     if active:
-        set_active_obj(objList[0])
+        set_active_obj(obj_list[0])
 
 
 def select_all():
@@ -160,19 +160,19 @@ def select_geom(geom, only:bool=False):
 
 
 @blender_version_wrapper("<=","2.79")
-def deselect(objList):
+def deselect(obj_list):
     """ deselects objs in list """
-    # confirm objList is a list of objects
-    objList = confirm_list(objList)
+    # confirm obj_list is a list of objects
+    obj_list = confirm_list(obj_list)
     # select/deselect objects in list
     for obj in obj_list:
         if obj is not None and obj.select:
             obj.select = False
 @blender_version_wrapper(">=","2.80")
-def deselect(objList):
+def deselect(obj_list):
     """ deselects objs in list """
-    # confirm objList is a list of objects
-    objList = confirm_list(objList)
+    # confirm obj_list is a list of objects
+    obj_list = confirm_list(obj_list)
     # select/deselect objects in list
     for obj in obj_list:
         if obj is not None and obj.select_get():
@@ -491,7 +491,7 @@ def right_align(layout_item):
     layout_item.use_property_decorate = False
 
 
-def get_item_by_id(collection:CollectionProperty, id:int):
+def get_item_by_id(collection, id:int):
     """ get UIlist item from collection with given id """
     success = False
     for item in collection:

@@ -86,7 +86,7 @@ def get_elapsed_time(start_time, end_time, precision:int=2):
     value = end_time - start_time
 
     d_value = (((value / 365) / 24) / 60)
-    days = int(valueD)
+    days = int(d_value)
 
     h_value = (d_value - days) * 365
     hours = int(h_value)
