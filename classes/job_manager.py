@@ -74,7 +74,7 @@ class JobManager():
             JobManager.instance[index] = JobManager()
         return JobManager.instance[index]
 
-    def add_job(self, job:str, script:str, timeout:float=0, passed_data:dict={}, use_blend_file:bool=True, overwrite_blend:bool=True):
+    def add_job(self, job:str, script:str, timeout:float=0, passed_data:dict={}, passed_data_blocks:set=set(), use_blend_file:bool=True, overwrite_blend:bool=True):
         # ensure blender file is saved
         if bpy.path.basename(bpy.data.filepath) == "":
             return False, "'bpy.data.filepath' is empty, please save the Blender file"
@@ -89,6 +89,10 @@ class JobManager():
         self.uses_blend_file[job] = use_blend_file
         self.job_timeouts[job] = timeout
         self.job_statuses[job] = {"started":False, "returncode":None, "stdout":None, "stderr":None, "start_time":time.time(), "end_time":None, "attempts":0, "progress":0.0, "timed_out":False}
+        # send passed_data_blocks to library file
+        sent_data_blocks_path = os.path.join(self.temp_path, job + '_sent_data.blend')
+        if len(passed_data_blocks) > 0:
+            bpy.data.libraries.write(sent_data_blocks_path, passed_data_blocks, fake_user=True)
         # save the active blend file to be used in Blender instance
         if use_blend_file and (not os.path.exists(self.blendfile_paths[job]) or overwrite_blend):
             try:
@@ -100,13 +104,13 @@ class JobManager():
         target_path_base = os.path.join(self.temp_path, job)
         # clear old files if they exist
         progress_file_path = target_path_base + "_progress.py"
-        blend_data_file_path = target_path_base + "_data.blend"
-        python_data_file_path = target_path_base + "_data.py"
+        blend_data_file_path = target_path_base + "_retrieved_data.blend"
+        python_data_file_path = target_path_base + "_retrieved_data.py"
         for f in (progress_file_path, blend_data_file_path, python_data_file_path):
             if os.path.isfile(f):
                 os.remove(f)
         # add storage path and additional passed data to lines in job file in READ mode
-        lines = add_lines(script, target_path_base, self.passed_data[job])
+        lines = add_lines(script, target_path_base, self.passed_data[job], sent_data_blocks_path)
         # write text to job file in WRITE mode
         src=open(self.job_paths[job],"w")
         src.writelines(lines)
@@ -184,13 +188,13 @@ class JobManager():
 
     def retrieve_data(self, job:str, overwrite_data:bool=False):
         # retrieve python data stored to temp directory
-        data_file_path = os.path.join(self.temp_path, "%(job)s_data.py" % locals())
+        data_file_path = os.path.join(self.temp_path, "%(job)s_retrieved_data.py" % locals())
         data_file = open(data_file_path, "r")
         dumped_dict = data_file.readline()
         data_file.close()
         self.retrieved_data[job]["retrieved_python_data"] = marshal.loads(bytes.fromhex(dumped_dict)) if dumped_dict != "" else {}
         # retrieve blend data stored to temp directory
-        full_blend_path = os.path.join(self.temp_path, "%(job)s_data.blend" % locals())
+        full_blend_path = os.path.join(self.temp_path, "%(job)s_retrieved_data.blend" % locals())
         orig_data_names = lambda: None
         with bpy.data.libraries.load(full_blend_path) as (data_from, data_to):
             for attr in dir(data_to):
