@@ -74,7 +74,7 @@ class JobManager():
             JobManager.instance[index] = JobManager()
         return JobManager.instance[index]
 
-    def add_job(self, job:str, script:str, timeout:float=0, passed_data:dict={}, passed_data_blocks:set=set(), use_blend_file:bool=True, overwrite_blend:bool=True):
+    def add_job(self, job:str, script:str, timeout:float=0, passed_data:dict={}, passed_data_blocks:set=set(), use_blend_file:bool=False, overwrite_blend:bool=True):
         # ensure blender file is saved
         if bpy.path.basename(bpy.data.filepath) == "":
             return False, "'bpy.data.filepath' is empty, please save the Blender file"
