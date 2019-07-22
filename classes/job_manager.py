@@ -128,6 +128,7 @@ class JobManager():
             thread_func = shlex.split(thread_func)
         self.job_processes[job] = subprocess.Popen(thread_func, stdout=subprocess.PIPE if debug_level in (0, 2) and platform.system() in ("Darwin", "Linux") else None, stderr=subprocess.PIPE if debug_level < 2 and platform.system() in ("Darwin", "Linux") else None, shell=True)
         self.job_statuses[job]["started"] = True
+        self.job_statuses[job]["start_time"] = time.time()
         self.job_statuses[job]["attempts"] += 1
         self.retrieved_data[job] = {"retrieved_data_blocks":None, "retrieved_python_data":None}
         print("JOB STARTED:  ", job)
