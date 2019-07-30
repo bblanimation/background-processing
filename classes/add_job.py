@@ -99,7 +99,6 @@ class SCENE_OT_add_job(Operator):
 
     def cancel(self, context):
         self.job_manager.kill_job(self.job["name"])
-        self.JobManager.kill_job(self.job["name"])
         wm = context.window_manager
         wm.event_timer_remove(self._timer)
         self._timer = None
@@ -112,7 +111,7 @@ class SCENE_OT_add_job(Operator):
         script = scripts[self.job_index]
         self.job = {"name":os.path.basename(script) + "_" + self.obj.name, "script":script}
         self.job_manager = JobManager.get_instance(-1)
-        self.JobManager.max_workers = bpy.context.scene.backproc_max_workers
+        self.job_manager.max_workers = bpy.context.scene.backproc_max_workers
 
     ###################################################
     # class variables
