@@ -61,16 +61,11 @@ class VIEW3D_PT_background_processing_info(Panel):
         box = layout.box()
         col = box.column(align=True)
         col.scale_y = 0.7
-        row = col.row(align=True)
-        row.label(text="Pending Jobs: " + str(manager.num_pending_jobs()))
-        row = col.row(align=True)
-        row.label(text="Running Jobs: " + str(manager.num_running_jobs()))
-        row = col.row(align=True)
-        row.label(text="Completed Jobs: " + str(manager.num_completed_jobs()))
-        row = col.row(align=True)
-        row.label(text="Dropped Jobs: " + str(manager.num_dropped_jobs()))
-        row = col.row(align=True)
-        row.label(text="Available Workers: " + str(manager.num_available_workers()))
+        col.label(text="Pending Jobs: " + str(manager.num_pending_jobs()))
+        col.label(text="Running Jobs: " + str(manager.num_running_jobs()))
+        col.label(text="Completed Jobs: " + str(manager.num_completed_jobs()))
+        col.label(text="Dropped Jobs: " + str(manager.num_dropped_jobs()))
+        col.label(text="Available Workers: " + str(manager.num_available_workers()))
 
         # get job names to list out
         if scn.backproc_job_type == "QUEUED":
@@ -89,16 +84,12 @@ class VIEW3D_PT_background_processing_info(Panel):
         i = 0
         for job in sorted(jobs):
             i += 1
-            row = col.row(align=True)
-            row.label(text="%(i)s) %(job)s" % locals())
-            row = col.row(align=True)
+            col.label(text="%(i)s) %(job)s" % locals())
             job_state = manager.get_job_state(job)
             if job_state == "ACTIVE":
-                split = layout_split(row, factor=0.85)
-                col1 = split.column(align=True)
-                col1.label(text="Status: " + job_state.capitalize() + " (" + str(round(manager.get_job_progress(job) * 100, 1)) + "%)")
-                col1 = split.column(align=True)
-                col1.operator("backproc.kill_job", text="", icon="CANCEL").job_name = job
+                split = layout_split(col, align=True, factor=0.85)
+                split.label(text="Status: " + job_state.capitalize() + " (" + str(round(manager.get_job_progress(job) * 100, 1)) + "%)")
+                split.operator("backproc.kill_job", text="", icon="CANCEL").job_name = job
             else:
-                row.label(text="Status: " + job_state.capitalize())
+                col.label(text="Status: " + job_state.capitalize())
             layout.separator()

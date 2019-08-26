@@ -31,13 +31,6 @@ lines_to_add_at_beginning = [
     "data_blocks = list()\n",
     "python_data = list()\n",
     # functions to be used in background_processing scripts
-    # "def append_from(typ, filename):\n",
-    # "    directory = os.path.join(source_blend_file, typ)\n",
-    # "    filepath = os.path.join(directory, filename)\n",
-    # "    bpy.ops.wm.append(\n",
-    # "        filepath=filepath,\n",
-    # "        filename=filename,\n",
-    # "        directory=directory)\n",
     "def update_job_progress(percent_complete):\n",
     "    assert type(percent_complete) in (int, float)\n"
     "    progress_file = open(target_path_base + '_progress.py', 'w')\n",

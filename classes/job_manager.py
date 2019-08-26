@@ -75,6 +75,24 @@ class JobManager():
         return JobManager.instance[index]
 
     def add_job(self, job:str, script:str, timeout:float=0, passed_data:dict={}, passed_data_blocks:set=set(), use_blend_file:bool=False, overwrite_blend:bool=True):
+        """
+        Add a job to the job queue
+
+        Keyword Arguments:
+            job                -- job name
+            script             -- path to the script to run in background
+            timeout            -- job timeout in seconds; 0 for infinite
+            passed_data        -- pass python data to the background script (dict entry key = variable name, dict entry value = value assigned to variable)
+            passed_data_blocks -- pass blend data blocks to background scripts
+            use_blend_file     -- run background script in a separate instance of the active blend file
+            overwrite_blend    -- overwrite saved copy of the active blender file if running background script in instance of active blend file (does not overwrite active file itself)
+
+        Returns:
+            success       -- boolean if job successfully added to queue
+            error message -- error message string if job not added to queue
+
+
+        """
         # ensure blender file is saved
         if bpy.path.basename(bpy.data.filepath) == "":
             return False, "'bpy.data.filepath' is empty, please save the Blender file"
@@ -118,6 +136,7 @@ class JobManager():
         return True, ""
 
     def start_job(self, job:str, debug_level:int=0):
+        """ Start a job in the job queue """
         # send job string to background blender instance with subprocess
         binary_path = bpy.app.binary_path
         blendfile_path = "'" + self.blendfile_paths[job] + "'" if self.uses_blend_file[job] else ""

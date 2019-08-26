@@ -2,16 +2,14 @@
 import bpy
 import time
 
-# NOTE: If 'use_blend_file' property enabled in 'add_job' call, reference blend data from source file directly.
-# NOTE: Else, pull objects and meshes from source file using 'append_from(data_type:str, data_name:str)'.
-append_from("Object", objName)
-obj = bpy.data.objects.get(objName)
+# NOTE: Reference blend data from source file directly if 'use_blend_file' is True or data block was passed with 'passed_data_blocks' parameter
+obj = bpy.data.objects.get(obj_name)
 rMod = obj.modifiers.new(obj.name + "_remesh", "REMESH")
 if bpy.app.version < (2,80,0):
     m = obj.to_mesh(bpy.context.scene, apply_modifiers=True, settings="PREVIEW")
 else:
     m = bpy.data.meshes.new_from_object(obj)
-m.name = objName + "_remesh"
+m.name = obj_name + "_remesh"
 pi = 3.14159
 update_job_progress(0.2)
 

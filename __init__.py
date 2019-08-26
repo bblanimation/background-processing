@@ -57,12 +57,14 @@ def register():
         description="Maximum number of Blender instances to run in the background",
         min=0, max=100,
         update=update_max_workers,
-        default=5)
+        default=5,
+    )
 
     Scene.backproc_manager_index = IntProperty(
         name="JobManager Index",
         description="Index for the desired JobManager instance",
-        default=-1)
+        default=-1,
+    )
 
     Scene.backproc_job_type = EnumProperty(
         name="Job Type",
@@ -72,7 +74,8 @@ def register():
                ("ACTIVE", "Active", ""),
                ("COMPLETED", "Completed", ""),
                ("DROPPED", "Dropped", ""),),
-        default="ALL")
+        default="ALL",
+    )
 
 def unregister():
     del Scene.backproc_job_type

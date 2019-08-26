@@ -46,14 +46,9 @@ class VIEW3D_PT_background_processing_tests(Panel):
         manager = JobManager.get_instance()
 
         col = layout.column(align=True)
-        row = col.row(align=True)
-        row.operator("backproc.add_job", text="Add Job 1").job_index = 0
-        row = col.row(align=True)
-        row.operator("backproc.add_job", text="Add Job 2").job_index = 1
-        row = col.row(align=True)
-        row.operator("backproc.add_job", text="Add Job 3").job_index = 2
-        row = col.row(align=True)
-        row.operator("backproc.add_job", text="Add Job 4 (timeout)").job_index = 3
+        col.operator("backproc.add_job", text="Add Job 1").job_index = 0
+        col.operator("backproc.add_job", text="Add Job 2").job_index = 1
+        col.operator("backproc.add_job", text="Add Job 3").job_index = 2
+        col.operator("backproc.add_job", text="Add Job 4 (timeout)").job_index = 3
         col = layout.column(align=True)
-        row = col.row(align=True)
-        row.prop(scn, "backproc_max_workers")
+        col.prop(scn, "backproc_max_workers")

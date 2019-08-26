@@ -59,7 +59,8 @@ Run blender processes in the background with separate instances of Blender.
                     'speakers',
                     'texts',
                     'textures',
-                    'worlds']
+                    'worlds',
+                ]
                 ```
 * Send scripts to the JobManager for execution
     * Jobs can be added from within a separate operator/code block using the following code:

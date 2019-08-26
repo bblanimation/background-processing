@@ -52,9 +52,8 @@ class SCENE_OT_add_job(Operator):
         if bpy.data.filepath == "":
             self.report({"WARNING"}, "Please save the file first")
             return {"CANCELLED"}
-        # NOTE: Set 'use_blend_file' to True to access data from the current blend file in script (False to execute script from default startup)
         # NOTE: Job will run until it is finished or until it times out (specify timeout in seconds; 0 for infinite)
-        job_added, msg = self.job_manager.add_job(self.job["name"], timeout=17.5, script=self.job["script"], use_blend_file=False, passed_data={"objName":self.obj.name, "mesh_name":self.obj.data.name})
+        job_added, msg = self.job_manager.add_job(self.job["name"], timeout=17.5, script=self.job["script"], use_blend_file=False, passed_data_blocks=set([self.obj]), passed_data={"obj_name":self.obj.name, "mesh_name":self.obj.data.name})
         if not job_added:
             raise Exception(msg)
             return {"CANCELLED"}

@@ -3,9 +3,7 @@ import bpy
 import bmesh
 import time
 
-# NOTE: If 'use_blend_file' property enabled in 'add_job' call, reference blend data from source file directly.
-# NOTE: Else, pull objects and meshes from source file using 'append_from(data_type:str, data_name:str)'.
-append_from("Mesh", mesh_name)
+# NOTE: Reference blend data from source file directly if 'use_blend_file' is True or data block was passed with 'passed_data_blocks' parameter
 mesh = bpy.data.meshes.get(mesh_name)
 bm = bmesh.new()
 bm.from_mesh(mesh)

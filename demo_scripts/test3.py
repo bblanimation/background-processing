@@ -4,10 +4,8 @@ import bmesh
 import time
 import math
 
-# NOTE: If 'use_blend_file' property enabled in 'add_job' call, reference blend data from source file directly.
-# NOTE: Else, pull objects and meshes from source file using 'append_from(data_type:str, data_name:str)'.
-append_from("Object", objName)
-source_ob = bpy.data.objects.get(objName)
+# NOTE: Reference blend data from source file directly if 'use_blend_file' is True or data block was passed with 'passed_data_blocks' parameter
+source_ob = bpy.data.objects.get(obj_name)
 
 meta_data = bpy.data.metaballs.new('Volume Data')
 meta_obj = bpy.data.objects.new('Volume Object', meta_data)
